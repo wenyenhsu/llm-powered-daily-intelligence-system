@@ -1,0 +1,13 @@
+tech:
+  - name: The Verge
+    type: rss
+    url: https://www.theverge.com/rss/index.xml
+
+  - name: TechCrunch
+    type: rss
+    url: https://techcrunch.com/feed/
+
+finance:
+  - name: Reuters Business
+    type: rss
+    url: https://feeds.reuters.com/reuters/businessNews
