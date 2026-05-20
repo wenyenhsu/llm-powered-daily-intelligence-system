@@ -234,9 +234,8 @@ def main():
     parser.add_argument("--ranking", action="store_true")
     parser.add_argument("--cluster-topics", action="store_true")
     parser.add_argument("--threshold", type=float, default=0.84) #  for cluster-topic tunning
-    parser.add_argument("--reports", action="store_true") # execute all report
     parser.add_argument("--reports-backend",choices=["ollama"])  # execute all report
-    parser.add_argument("--report-granularity", choices=["day", "week", "month", "all"], default="all")
+    parser.add_argument("--reports-granularity", choices=["day", "week", "month", "all"], default="all")
     args = parser.parse_args()
 
     load_env()
@@ -313,7 +312,7 @@ def main():
     if args.reports:
         run_reports(
             TODAY,
-            args.report_granularity,
+            args.reports_granularity,
             args.reports_backend,
         )
 

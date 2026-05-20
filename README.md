@@ -33,10 +33,19 @@ Obsidian Graph
 
 # 🔄 Execution Flow
 
-```
-fetch → init → summarize → topic normalize → insight normalize → aggregate → clean → merge → reindex → ranking → cluster-topics
-```
-
+```text
+fetch
+  → init
+  → summarize
+  → topic normalize
+  → insight normalize
+  → aggregate
+  → clean
+  → merge
+  → reindex
+  → ranking
+  → cluster-topics
+  → reports
 ---
 
 # 📊 Pipeline Steps
@@ -52,7 +61,7 @@ fetch → init → summarize → topic normalize → insight normalize → aggre
 
 ---
 
-## 3. Summarize (`--backend`)
+## 3. Summarize (`--execution-analysis-backend`)
 - LLM generates:
   - Summary
   - Topics
@@ -140,6 +149,38 @@ reports/topic_clusters.md
 
 ---
 
+## 12. Report Generation (`--reports`)
+
+Generate synthesized intelligence reports.
+
+Supported granularities:
+
+- daily
+- weekly
+- monthly
+
+Supported backends:
+
+- Ollama
+
+Output:
+
+```text
+reports/daily/
+reports/weekly/
+reports/monthly/
+```
+
+Generated reports include:
+
+- executive summaries
+- recurring themes
+- trend evolution
+- strategic insights
+- risk analysis
+- long-term signals
+
+---
 # 🧪 Usage
 
 ## Full Pipeline
@@ -148,7 +189,7 @@ reports/topic_clusters.md
 python3 src/run_pipeline.py \
   --fetch \
   --init \
-  --backend ollama \
+  --execution-analysis-backend  ollama\
   --agg \
   --clean \
   --merge \
@@ -168,7 +209,7 @@ python3 src/run_pipeline.py --fetch
 
 ### Only summarize
 ```bash
-python3 src/run_pipeline.py --backend ollama
+python3 src/run_pipeline.--execution-analysis-backend ollama
 ```
 
 ### Rebuild memory
@@ -181,8 +222,27 @@ python3 src/run_pipeline.py --reindex
 python3 src/run_pipeline.py --merge --merge-apply
 ```
 
+### Produce Reports
+```bash
+python3 src/run_pipeline.py --reports-backend 
+```
+
+
 ---
 
+# 🧠 Intelligence Layer
+
+The system continuously evolves through:
+
+```text
+normalize
+→ merge
+→ memory
+→ clustering
+→ synthesis
+```
+---
+This transforms isolated news into persistent semantic intelligence.
 # 🧠 Hybrid Topic System
 
 Topics are not fully manual or fully AI.
