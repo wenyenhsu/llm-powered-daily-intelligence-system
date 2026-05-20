@@ -1,14 +1,13 @@
 import feedparser
 import yaml
-from datetime import datetime
+from config import *
 
-with open("references/sources.yaml") as f:
+with open(f"{CONFIGS_DIR}/sources.yaml") as f:
     sources = yaml.safe_load(f)
 
-date = datetime.now().strftime("%Y-%m-%d")
-output = f"inbox/{date}.md"
+output = f"{INBOX_DIR}/{TODAY}.md"
 
-lines = [f"# {date} News Inbox\n"]
+lines = [f"# {TODAY} News Inbox\n"]
 
 for category, feeds in sources.items():
     lines.append(f"## {category.capitalize()}\n")

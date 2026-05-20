@@ -1,0 +1,21 @@
+# Top Insights
+1. [[insights/ai-in-biotech]] — score: 75
+2. [[insights/ai-design-competition]] — score: 49
+3. [[insights/ai-search-expansion]] — score: 29
+4. [[insights/ai-search-agents]] — score: 29
+5. [[insights/ai-milestones]] — score: 29
+6. [[insights/ai-productivity-tools]] — score: 29
+7. [[insights/ai-productivity-enhancement]] — score: 29
+8. [[insights/subscription-pricing-trends]] — score: 24
+9. [[insights/wearable-tech-expansion]] — score: 24
+10. [[insights/subscription-pricing]] — score: 24
+11. [[insights/wearable-integration]] — score: 24
+12. [[insights/ai-singularity-discussion]] — score: 24
+13. [[insights/ai-singularity-speculation]] — score: 22
+14. [[insights/ai-agent-search-enhancement]] — score: 22
+15. [[insights/ai-design-market-expansion]] — score: 22
+16. [[insights/voice-enabled-email-interaction]] — score: 22
+17. [[insights/subscription-pricing-escalation]] — score: 17
+18. [[insights/smartwatch-integration-expansion]] — score: 17
+19. [[insights/wearable-functionality-expansion]] — score: 9
+20. [[insights/ai-singularity-discussions]] — score: 9
