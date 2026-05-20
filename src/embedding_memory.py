@@ -29,7 +29,7 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
     return dot / (norm_a * norm_b)
 
 
-def embed_text(text: str, model: str = EMBED_MODEL) -> list[float]:
+def embed_text(text: str, model: str = OLLAMA_EMBED_MODEL) -> list[float]:
     resp = requests.post(
         f"{OLLAMA_HOST}/api/embeddings",
         json={"model": model, "prompt": text},
@@ -65,18 +65,18 @@ def build_insight_index() -> dict[str, Any]:
         )
 
     index = {
-        "model": EMBED_MODEL,
+        "model": OLLAMA_EMBED_MODEL,
         "items": items,
     }
 
-    INDEX_FILE.write_text(json.dumps(index, ensure_ascii=False, indent=2), encoding="utf-8")
+    INSIGHT_INDEX_FILE.write_text(json.dumps(index, ensure_ascii=False, indent=2), encoding="utf-8")
     return index
 
 
 def load_index() -> dict[str, Any]:
-    if not INDEX_FILE.exists():
+    if not INSIGHT_INDEX_FILE.exists():
         return build_insight_index()
-    return json.loads(INDEX_FILE.read_text(encoding="utf-8"))
+    return json.loads(INSIGHT_INDEX_FILE.read_text(encoding="utf-8"))
 
 
 def match_insight(candidate_text: str, threshold: float = 0.82) -> dict[str, Any]:

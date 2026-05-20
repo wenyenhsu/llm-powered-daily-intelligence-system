@@ -29,7 +29,7 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
 def embed_text(text: str) -> list[float]:
     resp = requests.post(
         f"{OLLAMA_HOST}/api/embeddings",
-        json={"model": EMBED_MODEL, "prompt": text},
+        json={"model": OLLAMA_EMBED_MODEL, "prompt": text},
         timeout=120,
     )
     resp.raise_for_status()

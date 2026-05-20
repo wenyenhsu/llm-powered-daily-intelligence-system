@@ -33,7 +33,7 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
     return dot / (norm_a * norm_b)
 
 
-def embed_text(text: str, model: str = EMBED_MODEL) -> list[float]:
+def embed_text(text: str, model: str = OLLAMA_EMBED_MODEL) -> list[float]:
     resp = requests.post(
         f"{OLLAMA_HOST}/api/embeddings",
         json={"model": model, "prompt": text},
@@ -67,7 +67,7 @@ def build_index() -> dict[str, Any]:
         )
 
     index = {
-        "model": EMBED_MODEL,
+        "model": OLLAMA_EMBED_MODEL,
         "items": items,
     }
 

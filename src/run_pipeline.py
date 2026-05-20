@@ -12,6 +12,9 @@ from topic_clustering import (
 )
 from topic_memory import resolve_or_create_topic, build_index as build_topic_index
 
+from generate_reports import generate_reports
+from config import *
+
 
 # === load .env ===
 def load_env():
@@ -193,11 +196,33 @@ def normalize_topic_links(text: str, threshold: float = 0.78) -> str:
     return TOPIC_LINK_RE.sub(repl, text)
 
 
+# use for create reports
+def run_reports(target_date: str, granularity: str, backend: str):
+    if granularity == "all":
+        granularities = ["day", "week", "month"]
+    else:
+        granularities = [granularity]
+
+    for g in granularities:
+        result = generate_reports(
+            granularity=g,
+            target_date=target_date,
+            source_dir=BASE_DIR / "insights",
+            output_dir=BASE_DIR / "reports",
+            prompt_dir=PROMPTS_DIR,
+            llm_callable=lambda prompt, provider, model: run_llm(backend, prompt),
+        )
+        print(f"report done: {result.output_path}")
+
+
+
+
+
 
 # === main pipeline ===
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--backend",choices=["gemini", "ollama"])
+    parser.add_argument("--execution-analysis-backend",choices=["ollama"])
     parser.add_argument("--fetch", action="store_true")
     parser.add_argument("--init", action="store_true")
     parser.add_argument("--agg", action="store_true")
@@ -208,7 +233,10 @@ def main():
     parser.add_argument("--merge-apply", action="store_true")
     parser.add_argument("--ranking", action="store_true")
     parser.add_argument("--cluster-topics", action="store_true")
-    parser.add_argument("--threshold", type=float, default=0.84)
+    parser.add_argument("--threshold", type=float, default=0.84) #  for cluster-topic tunning
+    parser.add_argument("--reports", action="store_true") # execute all report
+    parser.add_argument("--reports-backend",choices=["ollama"])  # execute all report
+    parser.add_argument("--report-granularity", choices=["day", "week", "month", "all"], default="all")
     args = parser.parse_args()
 
     load_env()
@@ -224,7 +252,7 @@ def main():
     daily_file = DAILY_DIR / f"{TODAY}.md"
 
     # === run data ===
-    if args.backend:
+    if args.execution_analysis_backend:
         prompt = build_prompt_for_inbox(TODAY)
         print(f"Running LLM ({args.backend})...")
         # === run Embedding_memory to avoid duplicated insights in graph ===
@@ -280,6 +308,14 @@ def main():
         clusters = build_clusters(items, args.threshold)
         write_topic_clusters_report(clusters, items)
         print("topic clustering done.")
+
+    # === Reports===
+    if args.reports:
+        run_reports(
+            TODAY,
+            args.report_granularity,
+            args.reports_backend,
+        )
 
 
 if __name__ == "__main__":

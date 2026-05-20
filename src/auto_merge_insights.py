@@ -2,14 +2,10 @@
 from __future__ import annotations
 
 import argparse
-import os
-import re
 import sys
 from collections import defaultdict
-from pathlib import Path
 
 import requests
-
 from config import *
 
 
@@ -31,7 +27,7 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
 def embed_text(text: str) -> list[float]:
     resp = requests.post(
         f"{OLLAMA_HOST}/api/embeddings",
-        json={"model": EMBED_MODEL, "prompt": text},
+        json={"model": OLLAMA_EMBED_MODEL, "prompt": text},
         timeout=120,
     )
     resp.raise_for_status()

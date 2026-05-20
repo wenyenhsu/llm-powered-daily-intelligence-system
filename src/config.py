@@ -32,7 +32,6 @@ TOPIC_INDEX_FILE = STATE_DIR / "topic_index.json"
 # =========================================================
 
 TODAY = datetime.now().strftime("%Y-%m-%d")
-
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 
@@ -62,3 +61,6 @@ TOPIC_LINK_RE = re.compile(r"\[\[topics/([^\]|]+)(?:\|[^\]]+)?\]\]")
 EMPTY_BULLET_RE = re.compile(r"^\s*[-*]\s*$", re.MULTILINE)
 MULTI_BLANK_RE = re.compile(r"\n{3,}")
 HEADING_RE = re.compile(r"^# .*$", re.MULTILINE)
+FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
+DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
+DERIVED_FROM_RE = re.compile(r"Derived from\s+daily/(\d{4}-\d{2}-\d{2})", re.IGNORECASE)
