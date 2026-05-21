@@ -1,11 +1,7 @@
 from __future__ import annotations
-
-import argparse
 from collections import defaultdict
-
 import requests
-
-from config import *
+from src.config import *
 
 
 
@@ -100,7 +96,7 @@ def build_clusters(items: list[dict], threshold: float) -> list[list[int]]:
 
 
 def choose_canonical(group: list[int], items: list[dict]) -> int:
-    # 優先短名稱，次要字母序
+    # choose the short name fist
     return min(group, key=lambda i: (len(items[i]["slug"]), items[i]["slug"]))
 
 

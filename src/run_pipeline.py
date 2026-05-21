@@ -1,19 +1,21 @@
-import os
 import subprocess
 import argparse
+import requests
 import sys
-from clean_up import *
-from embedding_memory import *
-from ranking import build_ranking, write_report as write_ranking_report
-from topic_clustering import (
+import time
+from src.clean_up import *
+from src.embedding_memory import *
+from src.ranking import build_ranking, write_report as write_ranking_report
+from src.topic_clustering import (
     read_topic_files,
     build_clusters,
     write_report as write_topic_clusters_report,
 )
-from topic_memory import resolve_or_create_topic, build_index as build_topic_index
+from src.topic_memory import resolve_or_create_topic, build_index as build_topic_index
 
-from generate_reports import generate_reports
-from config import *
+from src.generate_reports import generate_reports
+from src.config import *
+import argparse
 
 
 # === load .env ===
@@ -26,7 +28,6 @@ def load_env():
                     k, v = line.strip().split("=", 1)
                     os.environ[k] = v
 
-
 # === run shell commands ===
 def run_cmd(cmd):
     print(f"> {cmd}")
@@ -37,18 +38,36 @@ def build_prompt_for_inbox(date_str):
     data = (INBOX_DIR / f"{date_str}.md").read_text()
     return f"{prompt}\n\n--- DATA ---\n{data}"
 
-def fetch_news() -> None:
+def fetch_news(target_date: str) -> None:
     print("Fetching news...")
-    run_cmd([sys.executable, str(SRC_DIR / "fetch_news.py")])
+    run_cmd([
+        sys.executable,
+        str(SRC_DIR / "fetch_news.py"),
+        "--date",
+        target_date,
+    ])
+
 
 def create_daily(date_str: str) -> Path:
     print("Creating daily note...")
     DAILY_DIR.mkdir(parents=True, exist_ok=True)
     daily_file = DAILY_DIR / f"{date_str}.md"
+    if not daily_file.exists():
+        daily_file.write_text(
+            f"# {date_str} Daily\n",
+            encoding="utf-8",
+        )
+
     return daily_file
 
-def aggregate_insights():
-    run_cmd([sys.executable, str(SRC_DIR / "aggregate_insights.py")])
+
+def aggregate_insights(target_date: str):
+    run_cmd([
+        sys.executable,
+        str(SRC_DIR / "aggregate_insights.py"),
+        "--date",
+        target_date,
+    ])
 
 def load_existing_insights():
     insights_dir = BASE_DIR / "insights"
@@ -63,39 +82,49 @@ def load_existing_insights():
     return insights
 
 # === run LLM ===
-
 def run_llm(backend, prompt):
-    if backend == "gemini":
-        result = subprocess.run(
-            ["gemini", "--yolo", "-p", prompt],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-    elif backend == "ollama":
-        model = os.environ.get("OLLAMA_MODEL", "qwen3:8b")
-        result = subprocess.run(
-            ["ollama", "run", model],
-            input=prompt,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-    else:
-        raise ValueError(f"Unknown backend: {backend}")
+    model = os.environ.get("OLLAMA_MODEL", "gemma3:12b")
 
-    return result.stdout
+    url = "http://localhost:11434/api/generate"
+
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+    }
+
+    for attempt in range(2):
+        try:
+            response = requests.post(
+                url,
+                json=payload,
+                timeout=300,
+            )
+
+            response.raise_for_status()
+
+            data = response.json()
+
+            return data.get("response", "").strip()
+
+        except Exception as e:
+            print(f"Ollama API error: {e}", file=sys.stderr)
+
+            if attempt == 0:
+                print("Retrying Ollama request...", file=sys.stderr)
+                time.sleep(2)
+                continue
+
+            raise
 
 
 def normalize_insight_links(text: str, threshold: float = 0.82) -> str:
     """
-    把 LLM 產生的 [[insights/...]] 做 embedding 比對：
-    - 相似就 reuse 舊 insight
-    - 不相似才保留/建立新 slug
+    Process LLM-generated [[insights/...]] for embedding comparison:
+    - If similar, reuse the old insight
+    - If not similar, retain or create a new slug
     """
     # === regex ===
-    INSIGHT_LINK_RE = re.compile(r"\[\[insights/([^\]]+)\]\]")
-
     def repl(match: re.Match[str]) -> str:
         raw = match.group(1).strip()
         candidate = normalize_name(raw)
@@ -122,23 +151,23 @@ def normalize_insight_links(text: str, threshold: float = 0.82) -> str:
         words = [w for w in words if w not in stopwords]
         name = "-".join(words)
 
-        # 移除 k-insights pattern（更強）
-        # ⭐ 直接砍掉 "insights" 前面的所有東西
+# Remove k-insights pattern (more aggressive)
+# Directly remove everything before "insights"
         name = re.sub(r".*insights?-", "", name)
         name = re.sub(r".*topics?-", "", name)
 
-        # 先統一底線
+# Unify underscores
         name = name.replace("_", "-")
 
-        # 清掉常見噪音
+# Clear common noise
         name = re.sub(r"-?\d{1,3}d?-?k?-?insights?-?", "-", name)
         name = re.sub(r"-?\d{4}-?", "-", name)
 
-        # 清掉重複詞
+# Clear duplicate words
         name = re.sub(r"(ai-search-)+", "ai-search-", name)
         name = re.sub(r"(smartwatch-)+", "smartwatch-", name)
 
-        # 轉成 slug
+# Convert to slug
         name = re.sub(r"[^a-z0-9]+", "-", name)
         name = re.sub(r"-{2,}", "-", name).strip("-")
 
@@ -152,25 +181,25 @@ def normalize_topic_name(name: str) -> str:
     name = name.lower().strip()
     name = name.replace("_", "-")
 
-    # ⭐ 放在這裡
+    # Remove stopwords like "topic," "topics," and "insight"
     stopwords = {"topic", "topics", "insight", "insights", "news", "trend"}
     words = re.split(r"[-\s]+", name)
     words = [w for w in words if w not in stopwords]
     name = "-".join(words)
 
-    # ⭐ 直接砍掉 "insights" 前面的所有東西
+    # Directly remove everything before "insights" or "topics"
     name = re.sub(r".*insights?-", "", name)
     name = re.sub(r".*topics?-", "", name)
 
-    # 清掉常見噪音
+    # Clear common noise patterns like dates and numbers
     name = re.sub(r"-?\d{1,3}d?-?k?-?topics?-?", "-", name)
     name = re.sub(r"-?\d{1,3}d?-?k?-?topic?-?", "-", name)
     name = re.sub(r"-?\d{4}-?", "-", name)
 
-    # 移除明顯垃圾詞
+    # Remove common words like "topics," "topic," and "insights"
     name = re.sub(r"\b(topics?|topic|insights?|insight)\b", "", name)
 
-    # 壓成乾淨 slug
+    # Convert to a clean slug
     name = re.sub(r"[^a-z0-9]+", "-", name)
     name = re.sub(r"-{2,}", "-", name).strip("-")
 
@@ -216,53 +245,101 @@ def run_reports(target_date: str, granularity: str, backend: str):
 
 
 
-
-
-
-# === main pipeline ===
-def main():
+def build_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--execution-analysis-backend",choices=["ollama"])
+
+    parser.add_argument(
+        "--execution-analysis-backend",
+        choices=["ollama"],
+    )
+
+    parser.add_argument(
+        "--date",
+        "--execution-analysis-backend-date",
+        dest="target_date",
+        default=TODAY,
+        help="Target date in YYYY-MM-DD format.",
+    )
+
     parser.add_argument("--fetch", action="store_true")
     parser.add_argument("--init", action="store_true")
     parser.add_argument("--agg", action="store_true")
     parser.add_argument("--clean", action="store_true")
     parser.add_argument("--reindex", action="store_true")
+
     parser.add_argument("--merge", action="store_true")
     parser.add_argument("--merge-threshold", type=float, default=0.88)
     parser.add_argument("--merge-apply", action="store_true")
-    parser.add_argument("--ranking", action="store_true")
-    parser.add_argument("--cluster-topics", action="store_true")
-    parser.add_argument("--threshold", type=float, default=0.84) #  for cluster-topic tunning
-    parser.add_argument("--reports-backend",choices=["ollama"])  # execute all report
-    parser.add_argument("--reports-granularity", choices=["day", "week", "month", "all"], default="all")
-    args = parser.parse_args()
 
+    parser.add_argument("--ranking", action="store_true")
+
+    parser.add_argument("--cluster-topics", action="store_true")
+    parser.add_argument("--threshold", type=float, default=0.84)
+
+    parser.add_argument(
+        "--reports-backend",
+        choices=["ollama"],
+    )
+
+    parser.add_argument(
+        "--reports-granularity",
+        choices=["day", "week", "month", "all"],
+        default="all",
+    )
+    parser.add_argument("--reports-start-date")
+    parser.add_argument("--reports-end-date")
+
+    return parser
+
+
+def parse_args(argv=None):
+    return build_parser().parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
     load_env()
 
-    print(f"Time to get some fresh info in ({TODAY})...")
-    # === conditional steps ===
+    target_date = args.target_date
+
+    print(f"Time to get some fresh info in ({target_date})...")
+
     if args.fetch:
-        fetch_news()
+        fetch_news(target_date)
 
     if args.init:
-        create_daily(TODAY)
+        create_daily(target_date)
 
-    daily_file = DAILY_DIR / f"{TODAY}.md"
+    daily_file = DAILY_DIR / f"{target_date}.md"
 
-    # === run data ===
     if args.execution_analysis_backend:
-        prompt = build_prompt_for_inbox(TODAY)
-        print(f"Running LLM ({args.backend})...")
-        # === run Embedding_memory to avoid duplicated insights in graph ===
-        raw_output = run_llm(args.backend, prompt)
+        inbox_file = INBOX_DIR / f"{target_date}.md"
+
+        if not inbox_file.exists():
+            raise FileNotFoundError(
+                f"Missing inbox file: {inbox_file}\n"
+                f"Run with --fetch first."
+            )
+
+        prompt = build_prompt_for_inbox(target_date)
+
+        print(f"Running LLM ({args.execution_analysis_backend})...")
+
+        raw_output = run_llm(
+            args.execution_analysis_backend,
+            prompt,
+        )
+
         fixed_output = normalize_topic_links(raw_output)
         fixed_output = normalize_insight_links(fixed_output)
-        daily_file.write_text(fixed_output, encoding="utf-8")
 
-    # === aggregation ===
+        daily_file.write_text(
+            fixed_output,
+            encoding="utf-8",
+        )
+
     if args.agg:
-        aggregate_insights()
+        aggregate_insights(target_date)
         print("aggregate done.")
 
     if args.clean:
@@ -272,6 +349,7 @@ def main():
 
     if args.merge:
         print("Auto-merging insights...")
+
         merge_cmd = [
             sys.executable,
             str(SRC_DIR / "auto_merge_insights.py"),
@@ -286,35 +364,44 @@ def main():
 
         run_cmd(merge_cmd)
 
-    # === embedding index refresh ===
     if args.reindex:
         build_insight_index()
         build_topic_index()
         print("embedding index refreshed.")
 
-    # === ranking ===
     if args.ranking:
         scores = build_ranking()
         write_ranking_report(scores)
         print("ranking done.")
 
-    # === cluster-topics===
     if args.cluster_topics:
         items = read_topic_files()
+
         if len(items) < 2:
             print("Not enough topic files to cluster.")
             return
-        clusters = build_clusters(items, args.threshold)
-        write_topic_clusters_report(clusters, items)
+
+        clusters = build_clusters(
+            items,
+            args.threshold,
+        )
+
+        write_topic_clusters_report(
+            clusters,
+            items,
+        )
+
         print("topic clustering done.")
 
-    # === Reports===
-    if args.reports:
+    if args.reports_backend:
         run_reports(
-            TODAY,
-            args.reports_granularity,
-            args.reports_backend,
+            target_date=target_date,
+            granularity=args.reports_granularity,
+            provider=args.reports_backend,
+            start_date=args.reports_start_date,
+            end_date=args.reports_end_date,
         )
+
 
 
 if __name__ == "__main__":

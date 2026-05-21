@@ -25,10 +25,12 @@ import argparse
 import datetime as dt
 import json
 import sys
+import unicodedata
 from collections import Counter
 from dataclasses import dataclass
+from logging import exception
 from typing import Any, Callable, Optional
-from config import *
+from src.config import *
 
 @dataclass(slots=True)
 class InsightItem:
@@ -57,12 +59,18 @@ class ReportWindow:
     def label(self) -> str:
         if self.granularity == "day":
             return self.start.isoformat()
+
         if self.granularity == "week":
             year, week, _ = self.start.isocalendar()
             return f"{year}-W{week:02d}"
+
         if self.granularity == "month":
             return f"{self.start.year:04d}-{self.start.month:02d}"
-        raise ValueError(f"Unsupported granularity: {self.granularity}")
+
+        if self.start == self.end:
+            return self.start.isoformat()
+
+        return f"{self.start.isoformat()}_to_{self.end.isoformat()}"
 
 
 @dataclass(slots=True)
@@ -476,6 +484,24 @@ def build_context(items: list[InsightItem], window: ReportWindow) -> str:
 
     return "\n".join(header).strip() + "\n"
 
+# for date
+def build_custom_window(
+    granularity: str,
+    start_date: str | dt.date,
+    end_date: str | dt.date,
+) -> ReportWindow:
+    if isinstance(start_date, str):
+        start_date = parse_date(start_date)
+
+    if isinstance(end_date, str):
+        end_date = parse_date(end_date)
+
+    return ReportWindow(
+        granularity=granularity,
+        target_date=end_date,
+        start=start_date,
+        end=end_date,
+    )
 
 def load_prompt(prompt_dir: Path, granularity: str) -> str:
     mapping = {
@@ -548,6 +574,80 @@ def call_llm(prompt: str, provider: str, model: str, llm_callable: LLMCallable |
         return ""
 
 
+# -------------------
+# output the report
+# -------------------
+def strip_ansi(text: str) -> str:
+    return ANSI_ESCAPE_RE.sub("", text)
+
+
+def clean_report(text: str) -> str:
+    if not text:
+        return ""
+
+    text = ANSI_ESCAPE_RE.sub("", text)
+    text = text.replace("\r\n", "\n")
+    text = unicodedata.normalize("NFKC", text)
+
+    # remove invisible / soft hyphen characters
+    text = INVISIBLE_RE.sub("", text)
+
+    # remove <think> blocks
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.S | re.I)
+
+    # remove leading Thinking... blocks
+    text = re.sub(r"(?is)^Thinking\.\.\..*?(?=\n\n|\Z)", "", text)
+
+    # remove vector / chunk tags
+    text = re.sub(r"\[\d+D\]\s*\[K\]", "", text)
+    text = re.sub(r"\[\d+D\]", "", text)
+    text = re.sub(r"\[K\]", "", text)
+
+    # normalize spaces inside lines, but keep paragraph breaks
+    lines = []
+    for line in text.splitlines():
+        line = re.sub(r"[ \t]+", " ", line).rstrip()
+        lines.append(line)
+
+    text = "\n".join(lines)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+
+    return text.strip() + "\n"
+
+
+def has_required_structure(text: str) -> bool:
+    return sum(section in text for section in REQUIRED_SECTIONS) >= 3
+
+
+def repair_report_text(
+    bad_output: str,
+    provider: str,
+    model: str,
+    llm_callable: LLMCallable | None = None,
+) -> str:
+    repair_prompt = f"""
+You are a report formatter.
+
+Rewrite the text below into the exact required report format.
+
+Rules:
+- Output ONLY the final report
+- Do NOT include thinking, reasoning, notes, or citations
+- Use exactly these sections:
+  - ## Executive Summary
+  - ## Major Themes
+  - ## Key Signals
+  - ## Risks and Watchlist
+  - ## Supporting Insights
+
+Source text:
+{bad_output}
+""".strip()
+
+    repaired = call_llm(repair_prompt, provider, model, llm_callable=llm_callable)
+    return clean_report(repaired)
+
+
 def render_report(
     items: list[InsightItem],
     window: ReportWindow,
@@ -561,9 +661,22 @@ def render_report(
     prompt = format_user_prompt(template, window, items, context)
 
     llm_output = call_llm(prompt, provider, model, llm_callable=llm_callable)
-    if llm_output.strip():
+    llm_output = clean_report(llm_output)
+
+    if has_required_structure(llm_output):
         return llm_output
-    return summarize_items_locally(items, window)
+
+    repaired = repair_report_text(
+        bad_output=llm_output,
+        provider=provider,
+        model=model,
+        llm_callable=llm_callable,
+    )
+
+    if has_required_structure(repaired):
+        return repaired
+
+    return clean_report(summarize_items_locally(items, window))
 
 
 def output_path(output_dir: Path, window: ReportWindow) -> Path:
@@ -573,17 +686,20 @@ def output_path(output_dir: Path, window: ReportWindow) -> Path:
         return output_dir / "weekly" / f"{window.label}.md"
     if window.granularity == "month":
         return output_dir / "monthly" / f"{window.label}.md"
+    if window.granularity == "all":
+        return output_dir / "all" / f"{window.label}.md"
     raise ValueError(f"Unsupported granularity: {window.granularity}")
 
 
 def write_report(path: Path, content: str) -> None:
     ensure_dirs(path.parent)
-    path.write_text(content, encoding="utf-8")
+    path.write_text(clean_report(content), encoding="utf-8")
+
 
 
 def generate_reports(
     granularity: str,
-    target_date: str | dt.date,
+    target_date: str | dt.date | None = None,
     source_dir: str | Path = "insights",
     output_dir: str | Path = "reports",
     prompt_dir: str | Path = "prompts",
@@ -594,22 +710,45 @@ def generate_reports(
     include_mtime: bool = False,
     dry_run: bool = False,
     llm_callable: LLMCallable | None = None,
+    start_date: str | dt.date | None = None,
+    end_date: str | dt.date | None = None,
 ) -> ReportResult:
-    """Generate one report and return the result object.
+    """Generate one report and return the result object."""
+    target_dt = None
 
-    This function is backend-agnostic. When `llm_callable` is provided, it is
-    used for synthesis (for example, via Ollama in `run_pipeline.py`). If no
-    callable is supplied, the function falls back to the local template report
-    generator so the pipeline still produces output.
-    """
+    if isinstance(target_date, str):
+        target_dt = parse_date(target_date)
+
+    elif isinstance(target_date, dt.date):
+        target_dt = target_date
+
+    if target_date is None and not (start_date and end_date):
+        raise ValueError(
+            "Either target_date or start_date/end_date is required."
+        )
+
+    target_dt = None
     if isinstance(target_date, str):
         target_dt = parse_date(target_date)
     elif isinstance(target_date, dt.date):
         target_dt = target_date
-    else:
-        raise TypeError("target_date must be a YYYY-MM-DD string or a datetime.date instance")
 
-    window = get_report_window(granularity, target_dt)
+    if start_date is not None and end_date is not None:
+        window = build_custom_window(
+            granularity,
+            start_date,
+            end_date,
+        )
+    else:
+        if target_dt is None:
+            raise ValueError(
+                "target_date is required when no custom range is provided."
+            )
+
+        window = get_report_window(
+            granularity,
+            target_dt,
+        )
     source_path = Path(source_dir)
     output_path_root = Path(output_dir)
     prompt_path = Path(prompt_dir)
@@ -626,7 +765,8 @@ def generate_reports(
 
     if not selected:
         raise ValueError(
-            f"No insights found for {window.granularity} window {window.start.isoformat()} to {window.end.isoformat()}"
+            f"No insights found for {window.granularity} window "
+            f"{window.start.isoformat()} to {window.end.isoformat()}"
         )
 
     effective_provider = provider if llm_callable is not None else "template"
@@ -638,11 +778,18 @@ def generate_reports(
         prompt_path,
         llm_callable=llm_callable,
     )
-
+    report = clean_report(report)
     out_path = output_path(output_path_root, window)
 
     if not dry_run:
         write_report(out_path, report)
+
+    if start_date is not None and end_date is not None:
+        start_label = start_date.isoformat() if isinstance(start_date, dt.date) else str(start_date)
+        end_label = end_date.isoformat() if isinstance(end_date, dt.date) else str(end_date)
+        print(f"Generating reports from {start_label} to {end_label}")
+    else:
+        print(f"Generating reports for {target_dt.isoformat()}")
 
     return ReportResult(
         granularity=granularity,
@@ -651,6 +798,33 @@ def generate_reports(
         output_path=out_path,
         content=report,
         item_count=len(selected),
+    )
+
+#-------------------
+# output the report-end
+#-------------------
+def run_reports(
+    target_date,
+    granularity,
+    provider,
+    start_date=None,
+    end_date=None,
+):
+    """
+    Pipeline entrypoint for reports generation.
+    """
+
+    print(
+        f"[reports] provider={provider} "
+        f"granularity={granularity}"
+    )
+
+    generate_reports(
+        granularity=granularity,
+        provider=provider,
+        target_date=target_date,
+        start_date=start_date,
+        end_date=end_date,
     )
 
 

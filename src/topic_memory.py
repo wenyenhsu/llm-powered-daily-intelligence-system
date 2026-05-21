@@ -2,14 +2,11 @@ from __future__ import annotations
 
 import json
 import math
-import os
-import re
-from pathlib import Path
 from typing import Any
 
 import requests
 
-from config import *
+from src.config import *
 
 def should_skip(path: Path) -> bool:
     return any(part in SKIP_DIRS for part in path.parts)

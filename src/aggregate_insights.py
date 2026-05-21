@@ -1,50 +1,84 @@
-import re
+import argparse
+from src.config import *
 
-from config import *
 
-daily_file = DAILY_DIR / f"{TODAY}.md"
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Aggregate daily insights."
+    )
 
-if not daily_file.exists():
-    print("No daily file:", daily_file)
-    exit()
+    parser.add_argument(
+        "--date",
+        default=TODAY,
+        help="Target date in YYYY-MM-DD format.",
+    )
 
-content = daily_file.read_text(encoding="utf-8")
+    return parser.parse_args()
 
-# === 找 insight links ===
-pattern = r"\[\[insights\/([^\]]+)\]\]"
-insights = sorted(set(re.findall(pattern, content)))
 
-topic_pattern = r"\[\[topics\/([^\]]+)\]\]"
-topics = sorted(set(re.findall(topic_pattern, content)))
-
-print("Aggregated insights:", insights)
-
-# clear name for the ANSI control char
 def clean_name(name: str) -> str:
     name = name.strip().lower()
+
     name = re.sub(r"[^a-z0-9\-]+", "-", name)
     name = re.sub(r"-{2,}", "-", name)
+
     return name.strip("-")
 
 
-# === aggregation ===
-for insight in insights:
-    insight = clean_name(insight)
-    insight_file = INSIGHTS_DIR / f"{insight}.md"
+def main() -> int:
+    args = parse_args()
 
-    if not insight_file.exists():
-        insight_file.write_text(f"# {insight}\n", encoding="utf-8")
+    target_date = args.date
 
-    existing = insight_file.read_text(encoding="utf-8")
+    daily_file = DAILY_DIR / f"{target_date}.md"
 
-    backlink_line = f"- Derived from [[daily/{TODAY}]]"
-    topic_lines = [f"- Related topic: [[topics/{t}]]" for t in topics]
+    if not daily_file.exists():
+        print("No daily file:", daily_file)
+        return 0
 
-    with open(insight_file, "a", encoding="utf-8") as f:
+    content = daily_file.read_text(encoding="utf-8")
+
+    insight_pattern = r"\[\[insights\/([^\]]+)\]\]"
+    insights = sorted(set(re.findall(insight_pattern, content)))
+
+    topic_pattern = r"\[\[topics\/([^\]]+)\]\]"
+    topics = sorted(set(re.findall(topic_pattern, content)))
+
+    print("Aggregated insights:", insights)
+
+    for insight in insights:
+        insight = clean_name(insight)
+
+        insight_file = INSIGHTS_DIR / f"{insight}.md"
+
+        if not insight_file.exists():
+            insight_file.write_text(
+                f"# {insight}\n",
+                encoding="utf-8",
+            )
+
+        existing = insight_file.read_text(encoding="utf-8")
+
+        backlink_line = f"- Derived from [[daily/{target_date}]]"
+
+        topic_lines = [
+            f"- Related topic: [[topics/{t}]]"
+            for t in topics
+        ]
+
+        # the error line will just append. This need to be rebuild
         if backlink_line not in existing:
-            f.write(f"\n## {TODAY}\n")
-            f.write(backlink_line + "\n")
-            for line in topic_lines:
-                f.write(line + "\n")
+            with open(insight_file, "a", encoding="utf-8") as f:
+                f.write(f"\n## {target_date}\n")
+                f.write(backlink_line + "\n")
 
-print("Aggregated insights:", insights)
+                for line in topic_lines:
+                    f.write(line + "\n")
+
+    print("Aggregated insights:", insights)
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

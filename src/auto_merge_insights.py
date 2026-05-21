@@ -4,9 +4,8 @@ from __future__ import annotations
 import argparse
 import sys
 from collections import defaultdict
-
 import requests
-from config import *
+from src.config import *
 
 
 def should_skip(path: Path) -> bool:
@@ -121,7 +120,7 @@ def merge_duplicate_text(canonical_text: str, dup_slug: str, dup_text: str) -> s
 
 def rewrite_links_everywhere(mapping: dict[str, str], dry_run: bool) -> None:
     """
-    把整個 vault 裡所有 [[insights/old]] 改成 [[insights/new]]
+    relink[[insights/old]] to [[insights/new]]
     """
     for md in BASE_DIR.rglob("*.md"):
         if should_skip(md):

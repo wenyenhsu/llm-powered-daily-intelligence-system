@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import json
 import math
-import re
-from pathlib import Path
 from typing import Any
-from config import *
+from src.config import *
 import requests
 
 
@@ -116,6 +114,6 @@ def match_insight(candidate_text: str, threshold: float = 0.82) -> dict[str, Any
 
 def upsert_index_for_file(file_path: Path) -> None:
     """
-    當新增或更新 insight 檔案時，刷新 index。
+    renew the index
     """
     build_insight_index()

@@ -64,3 +64,15 @@ HEADING_RE = re.compile(r"^# .*$", re.MULTILINE)
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
 DERIVED_FROM_RE = re.compile(r"Derived from\s+daily/(\d{4}-\d{2}-\d{2})", re.IGNORECASE)
+ANSI_ESCAPE_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+INVISIBLE_RE = re.compile(r"[\u200b\u200c\u200d\u2060\ufeff\u00ad]")
+BULLET_RE = re.compile(r"^(\s*[-*+]\s+)(.*)$")
+
+
+REQUIRED_SECTIONS = [
+    "## Executive Summary",
+    "## Major Themes",
+    "## Key Signals",
+    "## Risks and Watchlist",
+    "## Supporting Insights",
+]

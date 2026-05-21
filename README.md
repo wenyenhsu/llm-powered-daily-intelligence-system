@@ -149,7 +149,7 @@ reports/topic_clusters.md
 
 ---
 
-## 12. Report Generation (`--reports`)
+## 12. Report Generation (`--reports-backend `)
 
 Generate synthesized intelligence reports.
 
@@ -189,13 +189,14 @@ Generated reports include:
 python3 src/run_pipeline.py \
   --fetch \
   --init \
-  --execution-analysis-backend  ollama\
+  --execution-analysis-backend ollama \
   --agg \
   --clean \
   --merge \
   --reindex \
   --ranking \
-  --cluster-topics
+  --cluster-topics \
+  --reports-backend ollama 
 ```
 
 ---
@@ -226,7 +227,6 @@ python3 src/run_pipeline.py --merge --merge-apply
 ```bash
 python3 src/run_pipeline.py --reports-backend 
 ```
-
 
 ---
 

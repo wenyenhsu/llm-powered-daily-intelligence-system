@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from config import *
+from src.config import *
 
 
 
@@ -37,10 +37,10 @@ def clean_text(text: str) -> str:
 
     text = WIKI_LINK_RE.sub(replace_link, text)
 
-    # 移除空 bullet
+    # remove empty bullet space
     text = EMPTY_BULLET_RE.sub("", text)
 
-    # 壓縮多餘空白行
+    # remove blank
     text = MULTI_BLANK_RE.sub("\n\n", text)
 
     return text
@@ -52,8 +52,8 @@ def should_skip(path: Path) -> bool:
 
 def delete_bad_node_files() -> None:
     """
-    刪掉檔名本身就是壞 node 的 markdown 檔。
-    例如 insights/summarized.md
+    delete useless node markdown file。
+    Example : insights/summarized.md
     """
     for md in BASE_DIR.rglob("*.md"):
         if should_skip(md):
