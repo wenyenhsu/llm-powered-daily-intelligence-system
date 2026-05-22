@@ -77,33 +77,12 @@ It is an evolving intelligence system.
 
 ---
 
-# 🔄 Execution Flow
+# 🧠 Design Philosophy
 
-```text
-fetch
-  ↓
-init
-  ↓
-summarize
-  ↓
-topic normalize
-  ↓
-insight normalize
-  ↓
-aggregate
-  ↓
-clean
-  ↓
-merge
-  ↓
-reindex
-  ↓
-ranking
-  ↓
-cluster-topics
-  ↓
-reports
-```
+- LLM proposes
+- Embeddings decide
+- The system enforces consistency
+- Knowledge evolves over time
 
 ---
 # 🚀 Quick Start
@@ -602,24 +581,23 @@ Using wiki-links:
 
 ---
 
-# 🧠 Intelligence Layer
-
-The system continuously evolves through:
+# 🧠 Persistent Knowledge Flow
 
 ```text
-normalize
+daily/
     ↓
-merge
+insights/
     ↓
-memory
+topics/
     ↓
-clustering
+embedding memory
     ↓
-synthesis
-```
+semantic clustering
+    ↓
+long-term intelligence
 
 This transforms isolated information into persistent semantic intelligence.
-
+```
 ---
 
 # 🧠 Hybrid Topic System
@@ -640,25 +618,6 @@ existing topic found?
 
 ---
 
-# 🧠 Design Philosophy
-
-- LLM proposes
-- Embeddings decide
-- The system enforces consistency
-- Knowledge evolves over time
-
----
-
-# 🎯 Key Insight
-
-```text
-This is not a note-taking system.
-
-It is a self-evolving knowledge graph.
-```
-
----
-
 # 🧠 Core Concepts
 
 ```text
@@ -675,15 +634,18 @@ normalize = enforce canonical naming
 
 ---
 
-# 🏁 Summary
+# 🧩 Core Responsibilities
 
-```text
-LLM → suggest
-
-embeddings → decide
-
-system → evolve
-```
+| Layer | Responsibility |
+|---|---|
+| fetch_news | RSS ingestion |
+| aggregate_insights | LLM extraction & normalization |
+| embedding_memory | Semantic similarity memory |
+| auto_merge_insights | Deduplication & canonicalization |
+| topic_clustering | Topic relationship discovery |
+| ranking | Insight importance scoring |
+| generate_reports | Intelligence synthesis |
+| run_pipeline | End-to-end orchestration |
 
 ---
 
