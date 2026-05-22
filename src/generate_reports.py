@@ -803,29 +803,6 @@ def generate_reports(
 #-------------------
 # output the report-end
 #-------------------
-def run_reports(
-    target_date,
-    granularity,
-    provider,
-    start_date=None,
-    end_date=None,
-):
-    """
-    Pipeline entrypoint for reports generation.
-    """
-
-    print(
-        f"[reports] provider={provider} "
-        f"granularity={granularity}"
-    )
-
-    generate_reports(
-        granularity=granularity,
-        provider=provider,
-        target_date=target_date,
-        start_date=start_date,
-        end_date=end_date,
-    )
 
 
 def main() -> int:

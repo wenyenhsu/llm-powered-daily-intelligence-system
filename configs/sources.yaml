@@ -7,7 +7,53 @@ tech:
     type: rss
     url: https://techcrunch.com/feed/
 
-finance:
-  - name: Reuters Business
+  - name: GitHub Blog
     type: rss
-    url: https://feeds.reuters.com/reuters/businessNews
+    url: https://github.blog/feed/
+
+  - name: InfoQ
+    type: rss
+    url: https://feed.infoq.com/
+
+  - name: Hacker News
+    type: rss
+    url: https://hnrss.org/frontpage
+
+  - name: Ars Technica
+    type: rss
+    url: http://feeds.arstechnica.com/arstechnica/index
+
+  - name: Stack Overflow Blog
+    type: rss
+    url: https://stackoverflow.blog/feed/
+
+finance:
+  - name: Bloomberg Markets
+    type: rss
+    url: https://feeds.bloomberg.com/markets/news.rss
+
+  - name: CNBC World
+    type: rss
+    url: https://www.cnbc.com/id/100727362/device/rss/rss.html
+
+  - name: Financial Times
+    type: rss
+    url: https://www.ft.com/rss/home
+
+  - name: WSJ Markets
+    type: rss
+    url: https://feeds.a.dj.com/rss/RSSMarketsMain.xml
+
+
+startup:
+  - name: Y Combinator
+    type: rss
+    url: https://www.ycombinator.com/blog/feed
+
+  - name: Andreessen Horowitz
+    type: rss
+    url: https://a16z.com/feed/
+
+  - name: Sequoia Capital
+    type: rss
+    url: https://www.sequoiacap.com/feed/

@@ -42,7 +42,8 @@ def fetch_news(target_date: str) -> None:
     print("Fetching news...")
     run_cmd([
         sys.executable,
-        str(SRC_DIR / "fetch_news.py"),
+        "-m",
+        "src.fetch_news",
         "--date",
         target_date,
     ])
@@ -64,7 +65,8 @@ def create_daily(date_str: str) -> Path:
 def aggregate_insights(target_date: str):
     run_cmd([
         sys.executable,
-        str(SRC_DIR / "aggregate_insights.py"),
+        "-m",
+        "src.aggregate_insights",
         "--date",
         target_date,
     ])
@@ -226,7 +228,10 @@ def normalize_topic_links(text: str, threshold: float = 0.78) -> str:
 
 
 # use for create reports
-def run_reports(target_date: str, granularity: str, backend: str):
+def run_reports(target_date: str, granularity: str, backend: str,start_date=None,end_date=None ):
+    """
+    Pipeline entrypoint for reports generation.
+    """
     if granularity == "all":
         granularities = ["day", "week", "month"]
     else:
@@ -352,7 +357,8 @@ def main(argv=None):
 
         merge_cmd = [
             sys.executable,
-            str(SRC_DIR / "auto_merge_insights.py"),
+            "-m",
+            "src.auto_merge_insights",
             "--threshold",
             str(args.merge_threshold),
         ]
@@ -394,10 +400,11 @@ def main(argv=None):
         print("topic clustering done.")
 
     if args.reports_backend:
+        print(f"topic clustering done:{args.reports_backend}")
         run_reports(
             target_date=target_date,
             granularity=args.reports_granularity,
-            provider=args.reports_backend,
+            backend=args.reports_backend,
             start_date=args.reports_start_date,
             end_date=args.reports_end_date,
         )
