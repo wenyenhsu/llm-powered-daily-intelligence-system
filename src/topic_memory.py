@@ -117,6 +117,10 @@ def resolve_or_create_topic(candidate: str, threshold: float = 0.78) -> tuple[st
     returns:
       (slug, created_new)
     """
+    TOPICS_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
     result = match_topic(candidate, threshold=threshold)
 
     if result["matched"]:
