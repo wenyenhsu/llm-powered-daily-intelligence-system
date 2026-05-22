@@ -306,7 +306,14 @@ def main(argv=None):
     load_env()
 
     target_date = args.target_date
-
+    INBOX_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    INSIGHTS_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
     print(f"Time to get some fresh info in ({target_date})...")
 
     if args.fetch:
