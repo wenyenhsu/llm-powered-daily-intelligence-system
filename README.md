@@ -106,7 +106,6 @@ reports
 ```
 
 ---
-
 # 🚀 Quick Start
 
 ## 1. Clone Project
@@ -129,15 +128,15 @@ pip install -r requirements.txt
 
 ## 3. Setup `.env`
 
-Create `.env`
+Create a `.env` file in the project root:
 
 ```env
+# Ollama host
 OLLAMA_HOST=http://localhost:11434
 
+# Embedding model
 OLLAMA_EMBED_MODEL=nomic-embed-text
 
-REPORT_PROVIDER=ollama
-REPORT_MODEL=llama3
 ```
 
 ---
@@ -150,9 +149,29 @@ Edit:
 configs/sources.yaml
 ```
 
+Example:
+
+```yaml
+tech:
+  - name: The Verge
+    type: rss
+    url: https://www.theverge.com/rss/index.xml
+
+  - name: TechCrunch
+    type: rss
+    url: https://techcrunch.com/feed/
+
+finance:
+  - name: Reuters Business
+    type: rss
+    url: https://feeds.reuters.com/reuters/businessNews
+```
+
 ---
 
 ## 5. Start Ollama
+
+Start Ollama server:
 
 ```bash
 ollama serve
@@ -164,7 +183,7 @@ Pull embedding model:
 ollama pull nomic-embed-text
 ```
 
-(Optional)
+(Optional) Pull report model:
 
 ```bash
 ollama pull llama3
@@ -172,10 +191,12 @@ ollama pull llama3
 
 ---
 
-## 6. Run Full Pipeline
+# ⚡ Run Pipeline
+
+## Full Pipeline
 
 ```bash
-python3 src/run_pipeline.py \
+python3 -m src.run_pipeline \
   --fetch \
   --init \
   --execution-analysis-backend ollama \
@@ -190,25 +211,10 @@ python3 src/run_pipeline.py \
 
 ---
 
-# ✅ Generated Output
-
-After execution, the system generates:
-
-```text
-inbox/
-daily/
-insights/
-topics/
-reports/
-state/
-```
-
----
-
-# 📊 Generate Reports Only
+## Generate Reports Only
 
 ```bash
-python3 src/run_pipeline.py \
+python3 -m src.run_pipeline \
   --reports-backend ollama \
   --reports-granularity all
 ```
@@ -224,29 +230,63 @@ all
 
 ---
 
-# 🧪 Run Tests
+# 🧩 Pipeline Commands
+
+## Fetch RSS News
 
 ```bash
-pytest
+python3 -m src.run_pipeline --fetch
 ```
 
 ---
 
-# ⚡ Partial Pipeline Runs
-
-## Only Fetch RSS
+## Initialize Daily Notes
 
 ```bash
-python3 src/run_pipeline.py --fetch
+python3 -m src.run_pipeline --init
 ```
 
 ---
 
-## Only Run LLM Analysis
+## Run LLM Analysis
 
 ```bash
-python3 src/run_pipeline.py \
+python3 -m src.run_pipeline \
   --execution-analysis-backend ollama
+```
+
+---
+
+## Aggregate Insights
+
+```bash
+python3 -m src.run_pipeline --agg
+```
+
+---
+
+## Clean Daily Output
+
+```bash
+python3 -m src.run_pipeline --clean
+```
+
+---
+
+## Merge Similar Insights
+
+Dry run:
+
+```bash
+python3 -m src.run_pipeline --merge
+```
+
+Apply merge:
+
+```bash
+python3 -m src.run_pipeline \
+  --merge \
+  --merge-apply
 ```
 
 ---
@@ -254,36 +294,98 @@ python3 src/run_pipeline.py \
 ## Rebuild Embedding Memory
 
 ```bash
-python3 src/run_pipeline.py --reindex
+python3 -m src.run_pipeline --reindex
 ```
 
 ---
 
-## Merge Similar Insights
+## Build Insight Ranking
 
 ```bash
-python3 src/run_pipeline.py \
-  --merge \
-  --merge-apply
+python3 -m src.run_pipeline --ranking
 ```
 
 ---
 
-## Generate Reports
+## Cluster Topics
 
 ```bash
-python3 src/run_pipeline.py \
-  --reports-backend ollama
+python3 -m src.run_pipeline --cluster-topics
 ```
 
 ---
 
-# 🧩 Direct Scripts
+# 📊 Report Generation
 
-## Fetch RSS News
+## Generate Daily Report
 
 ```bash
-python3 src/fetch_news.py \
+python3 -m src.run_pipeline \
+  --reports-backend ollama \
+  --reports-granularity day
+```
+
+---
+
+## Generate Weekly Report
+
+```bash
+python3 -m src.run_pipeline \
+  --reports-backend ollama \
+  --reports-granularity week
+```
+
+---
+
+## Generate Monthly Report
+
+```bash
+python3 -m src.run_pipeline \
+  --reports-backend ollama \
+  --reports-granularity month
+```
+
+---
+
+## Generate All Reports
+
+```bash
+python3 -m src.run_pipeline \
+  --reports-backend ollama \
+  --reports-granularity all
+```
+
+---
+
+# 📅 Custom Date Ranges
+
+## Run Specific Date
+
+```bash
+python3 -m src.run_pipeline \
+  --target-date 2026-05-21
+```
+
+---
+
+## Generate Reports for Custom Range
+
+```bash
+python3 -m src.run_pipeline \
+  --reports-backend ollama \
+  --reports-granularity custom \
+  --reports-start-date 2026-05-01 \
+  --reports-end-date 2026-05-21
+```
+
+---
+
+# 🧩 Direct Script Usage
+
+## Fetch News Directly
+
+```bash
+python3 -m src.fetch_news \
   --date 2026-05-21
 ```
 
@@ -295,10 +397,10 @@ inbox/2026-05-21.md
 
 ---
 
-## Aggregate Insights
+## Aggregate Insights Directly
 
 ```bash
-python3 src/aggregate_insights.py \
+python3 -m src.aggregate_insights \
   --date 2026-05-21
 ```
 
@@ -316,7 +418,7 @@ topics/*.md
 ### Template Provider
 
 ```bash
-python3 src/generate_reports.py \
+python3 -m src.generate_reports \
   --granularity day \
   --date 2026-05-21 \
   --provider template
@@ -327,32 +429,41 @@ python3 src/generate_reports.py \
 ### Ollama Provider
 
 ```bash
-python3 src/generate_reports.py \
+python3 -m src.generate_reports \
   --granularity month \
   --provider ollama
 ```
 
 ---
 
-## Optional Report Arguments
+# 🧪 Testing
+
+Run all tests:
 
 ```bash
---dry-run
---include-mtime
---max-items
---max-chars-per-item
+pytest
 ```
 
-Example:
+Run specific test file:
 
 ```bash
-python3 src/generate_reports.py \
-  --granularity all \
-  --provider ollama \
-  --max-items 50 \
-  --include-mtime
+pytest tests/test_run_pipeline.py
 ```
 
+---
+
+# 📁 Generated Output
+
+After execution, the system generates:
+
+```text
+inbox/
+daily/
+insights/
+topics/
+reports/
+state/
+```
 ---
 
 # 📂 Output Files

@@ -288,7 +288,7 @@ def build_parser():
 
     parser.add_argument(
         "--reports-granularity",
-        choices=["day", "week", "month", "all"],
+        choices=["day", "week", "month", "all","custom"],
         default="all",
     )
     parser.add_argument("--reports-start-date")
