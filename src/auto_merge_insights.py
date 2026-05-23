@@ -95,13 +95,12 @@ def build_clusters(items: list[dict], threshold: float) -> list[list[int]]:
 
 
 def choose_canonical(group: list[int], items: list[dict]) -> int:
-    # 優先：slug 最短，其次字母序最小
     return min(group, key=lambda i: (len(items[i]["slug"]), items[i]["slug"]))
 
 
 def strip_main_heading(text: str) -> str:
     """
-    移除第一個 H1，避免合併後重複標題。
+    remove first h1
     """
     lines = text.splitlines()
     if lines and lines[0].startswith("# "):
@@ -209,6 +208,21 @@ def main() -> None:
             merged_text = merge_duplicate_text(merged_text, dup_slug, dup["text"])
 
         if not dry_run:
+            # update the metadata
+            if f"updated_at: " in merged_text:
+                merged_text = re.sub(
+                    r"updated_at:\s*\d{4}-\d{2}-\d{2}",
+                    f"updated_at: {TODAY}",
+                    merged_text,
+                )
+            else:
+                merged_text = (
+                        f"---\n"
+                        f"updated_at: {TODAY}\n"
+                        f"---\n\n"
+                        + merged_text
+                )
+
             canonical_path.write_text(merged_text, encoding="utf-8")
 
     if not mapping:

@@ -12,11 +12,11 @@ def normalize_target(raw: str) -> str:
     """
     raw = raw.strip()
 
-    # 先去掉 alias
+    # remove alias
     if "|" in raw:
         raw = raw.split("|", 1)[0].strip()
 
-    # 去掉前綴資料夾
+    # remove prior data
     if "/" in raw:
         raw = raw.split("/", 1)[1].strip()
 
@@ -28,7 +28,6 @@ def is_bad_target(raw: str) -> bool:
 
 
 def clean_text(text: str) -> str:
-    # 移除壞 wiki links
     def replace_link(match: re.Match[str]) -> str:
         target = match.group(1)
         if is_bad_target(target):

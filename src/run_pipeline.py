@@ -272,9 +272,10 @@ def build_parser():
     parser.add_argument("--clean", action="store_true")
     parser.add_argument("--reindex", action="store_true")
 
-    parser.add_argument("--merge", action="store_true")
-    parser.add_argument("--merge-threshold", type=float, default=0.88)
     parser.add_argument("--merge-apply", action="store_true")
+    parser.add_argument("--merge-dry-run", action="store_true")
+    parser.add_argument("--merge-threshold", type=float, default=0.88)
+
 
     parser.add_argument("--ranking", action="store_true")
 
@@ -359,21 +360,27 @@ def main(argv=None):
         clean_all_markdown()
         print("Cleanup done.")
 
-    if args.merge:
+    if args.merge_dry_run:
+        print("Auto-merging insights preview...")
+
+        merge_cmd = [sys.executable,
+                     "-m",
+                     "src.auto_merge_insights",
+                     "--threshold",
+                     str(args.merge_threshold),
+                     "--dry-run"]
+
+        run_cmd(merge_cmd)
+
+    if args.merge_apply:
         print("Auto-merging insights...")
 
-        merge_cmd = [
-            sys.executable,
-            "-m",
-            "src.auto_merge_insights",
-            "--threshold",
-            str(args.merge_threshold),
-        ]
-
-        if args.merge_apply:
-            merge_cmd.append("--apply")
-        else:
-            merge_cmd.append("--dry-run")
+        merge_cmd = [sys.executable,
+                     "-m",
+                     "src.auto_merge_insights",
+                     "--threshold",
+                     str(args.merge_threshold),
+                     "--apply"]
 
         run_cmd(merge_cmd)
 

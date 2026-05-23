@@ -181,7 +181,7 @@ python3 -m src.run_pipeline \
   --execution-analysis-backend ollama \
   --agg \
   --clean \
-  --merge \
+  --merge-apply \
   --reindex \
   --ranking \
   --cluster-topics \
@@ -257,14 +257,14 @@ python3 -m src.run_pipeline --clean
 Dry run:
 
 ```bash
-python3 -m src.run_pipeline --merge
+python3 -m src.run_pipeline\
+ --merge-dry-run
 ```
 
 Apply merge:
 
 ```bash
 python3 -m src.run_pipeline \
-  --merge \
   --merge-apply
 ```
 

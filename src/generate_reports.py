@@ -292,7 +292,8 @@ def load_insights(source_dir: Path, include_mtime: bool = False) -> list[Insight
             meta, body = parse_frontmatter(text)
 
             date = (
-                parse_date_from_any(meta.get("date"))
+                parse_date_from_any(meta.get("updated_at"))
+                or parse_date_from_any(meta.get("date"))
                 or parse_date_from_any(meta.get("created_at"))
                 or parse_date_from_any(meta.get("published_at"))
                 or parse_date_from_any(meta.get("updated_at"))
