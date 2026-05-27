@@ -1,42 +1,55 @@
-import subprocess
+from __future__ import annotations
+
 import argparse
-import requests
+import os
+import re
+import subprocess
 import sys
 import time
+from pathlib import Path
+
+import requests
+
 from src.clean_up import *
 from src.embedding_memory import *
+from src.generate_reports import generate_reports
 from src.ranking import build_ranking, write_report as write_ranking_report
 from src.topic_clustering import (
-    read_topic_files,
     build_clusters,
+    read_topic_files,
     write_report as write_topic_clusters_report,
 )
-from src.topic_memory import resolve_or_create_topic, build_index as build_topic_index
-
-from src.generate_reports import generate_reports
+from src.topic_memory import build_index as build_topic_index, resolve_or_create_topic
 from src.config import *
-import argparse
-
-
 # === load .env ===
-def load_env():
+def load_env() -> None:
     env_path = ENV_FILE
     if env_path.exists():
-        with open(env_path) as f:
+        with open(env_path, encoding="utf-8") as f:
             for line in f:
                 if "=" in line:
                     k, v = line.strip().split("=", 1)
                     os.environ[k] = v
+
 
 # === run shell commands ===
 def run_cmd(cmd):
     print(f"> {cmd}")
     subprocess.run(cmd, check=True)
 
-def build_prompt_for_inbox(date_str):
-    prompt = (PROMPTS_DIR / "summarized.md").read_text()
-    data = (INBOX_DIR / f"{date_str}.md").read_text()
-    return f"{prompt}\n\n--- DATA ---\n{data}"
+
+def build_prompt_for_inbox(date_str: str) -> str:
+    prompt = (PROMPTS_DIR / "summarized.md").read_text(encoding="utf-8")
+    extraction_contract = (PROMPTS_DIR / "extraction_contract.md").read_text(encoding="utf-8")
+    data = (INBOX_DIR / f"{date_str}.md").read_text(encoding="utf-8")
+
+    return (
+        f"{prompt}\n\n"
+        f"--- DATA ---\n"
+        f"{data}\n\n"
+        f"{extraction_contract}"
+    )
+
 
 def fetch_news(target_date: str) -> None:
     print("Fetching news...")
@@ -58,11 +71,10 @@ def create_daily(date_str: str) -> Path:
             f"# {date_str} Daily\n",
             encoding="utf-8",
         )
-
     return daily_file
 
 
-def aggregate_insights(target_date: str):
+def aggregate_insights(target_date: str) -> None:
     run_cmd([
         sys.executable,
         "-m",
@@ -70,6 +82,7 @@ def aggregate_insights(target_date: str):
         "--date",
         target_date,
     ])
+
 
 def load_existing_insights():
     insights_dir = BASE_DIR / "insights"
@@ -83,10 +96,10 @@ def load_existing_insights():
 
     return insights
 
-# === run LLM ===
-def run_llm(backend, prompt):
-    model = os.environ.get("OLLAMA_MODEL", "gemma3:12b")
 
+# === run LLM ===
+def run_llm(backend: str, prompt: str) -> str:
+    model = os.environ.get("OLLAMA_MODEL", "gemma3:12b")
     url = "http://localhost:11434/api/generate"
 
     payload = {
@@ -102,21 +115,16 @@ def run_llm(backend, prompt):
                 json=payload,
                 timeout=300,
             )
-
             response.raise_for_status()
-
             data = response.json()
-
             return data.get("response", "").strip()
 
         except Exception as e:
             print(f"Ollama API error: {e}", file=sys.stderr)
-
             if attempt == 0:
                 print("Retrying Ollama request...", file=sys.stderr)
                 time.sleep(2)
                 continue
-
             raise
 
 
@@ -126,23 +134,8 @@ def normalize_insight_links(text: str, threshold: float = 0.82) -> str:
     - If similar, reuse the old insight
     - If not similar, retain or create a new slug
     """
-    # === regex ===
-    def repl(match: re.Match[str]) -> str:
-        raw = match.group(1).strip()
-        candidate = normalize_name(raw)
-        candidate = candidate.replace("-", " ")
-        candidate = shorten_candidate(candidate)
-        result = match_insight(candidate, threshold=threshold)
-
-        if result["matched"]:
-            slug = result["slug"]
-        else:
-            slug = slugify(candidate)
-
-        return f"[[insights/{slug}]]"
-
     def shorten_candidate(text: str) -> str:
-        words = text.split()[:4]  # ⭐ 最多 4 個詞
+        words = text.split()[:4]
         return " ".join(words)
 
     def normalize_name(name: str) -> str:
@@ -153,55 +146,64 @@ def normalize_insight_links(text: str, threshold: float = 0.82) -> str:
         words = [w for w in words if w not in stopwords]
         name = "-".join(words)
 
-# Remove k-insights pattern (more aggressive)
-# Directly remove everything before "insights"
+        # Remove k-insights patterns more aggressively
         name = re.sub(r".*insights?-", "", name)
         name = re.sub(r".*topics?-", "", name)
 
-# Unify underscores
+        # Unify underscores
         name = name.replace("_", "-")
 
-# Clear common noise
+        # Clear common noise
         name = re.sub(r"-?\d{1,3}d?-?k?-?insights?-?", "-", name)
         name = re.sub(r"-?\d{4}-?", "-", name)
 
-# Clear duplicate words
+        # Clear duplicate words
         name = re.sub(r"(ai-search-)+", "ai-search-", name)
         name = re.sub(r"(smartwatch-)+", "smartwatch-", name)
 
-# Convert to slug
+        # Convert to slug
         name = re.sub(r"[^a-z0-9]+", "-", name)
         name = re.sub(r"-{2,}", "-", name).strip("-")
 
         return name
 
-    return INSIGHT_LINK_RE.sub(repl, text)
+    def repl(match: re.Match[str]) -> str:
+        raw = match.group(0)
+        raw_slug = raw.replace("[[insights/", "").replace("]]", "").strip()
+        candidate = normalize_name(raw_slug)
+        candidate = candidate.replace("-", " ")
+        candidate = shorten_candidate(candidate)
 
+        result = match_insight(candidate, threshold=threshold)
+
+        if result.get("matched"):
+            slug = result["slug"]
+        else:
+            slug = slugify(candidate)
+
+        return f"[[insights/{slug}]]"
+
+    return INSIGHT_LINK_RE.sub(repl, text)
 
 
 def normalize_topic_name(name: str) -> str:
     name = name.lower().strip()
     name = name.replace("_", "-")
 
-    # Remove stopwords like "topic," "topics," and "insight"
     stopwords = {"topic", "topics", "insight", "insights", "news", "trend"}
     words = re.split(r"[-\s]+", name)
     words = [w for w in words if w not in stopwords]
     name = "-".join(words)
 
-    # Directly remove everything before "insights" or "topics"
     name = re.sub(r".*insights?-", "", name)
     name = re.sub(r".*topics?-", "", name)
 
-    # Clear common noise patterns like dates and numbers
     name = re.sub(r"-?\d{1,3}d?-?k?-?topics?-?", "-", name)
     name = re.sub(r"-?\d{1,3}d?-?k?-?topic?-?", "-", name)
     name = re.sub(r"-?\d{4}-?", "-", name)
 
-    # Remove common words like "topics," "topic," and "insights"
     name = re.sub(r"\b(topics?|topic|insights?|insight)\b", "", name)
 
-    # Convert to a clean slug
     name = re.sub(r"[^a-z0-9]+", "-", name)
     name = re.sub(r"-{2,}", "-", name).strip("-")
 
@@ -210,25 +212,69 @@ def normalize_topic_name(name: str) -> str:
 
 def shorten_topic_candidate(text: str) -> str:
     words = [w for w in text.split() if w]
-    return " ".join(words[:3])  # topic 不要太長，3 個詞通常夠了
+    return " ".join(words[:3])
 
 
 def normalize_topic_links(text: str, threshold: float = 0.78) -> str:
     def repl(match: re.Match[str]) -> str:
-        raw = match.group(1).strip()
-        candidate = raw.replace("-", " ").replace("_", " ")
+        raw = match.group(0)
+        raw_slug = raw.replace("[[topics/", "").replace("]]", "").strip()
+        candidate = raw_slug.replace("-", " ").replace("_", " ")
         candidate = normalize_topic_name(candidate)
         candidate = shorten_topic_candidate(candidate)
 
         slug, created_new = resolve_or_create_topic(candidate, threshold=threshold)
-
         return f"[[topics/{slug}]]"
 
     return TOPIC_LINK_RE.sub(repl, text)
 
 
-# use for create reports
-def run_reports(target_date: str, granularity: str, backend: str,start_date=None,end_date=None ):
+def run_llm_and_validate(backend: str, prompt: str) -> str:
+    raw_output = run_llm(backend, prompt)
+
+    print("\n===== RAW LLM OUTPUT =====\n")
+    print(raw_output[:4000])
+    print("\n===== END RAW LLM OUTPUT =====\n")
+
+    fixed_output = normalize_topic_links(raw_output)
+    fixed_output = normalize_insight_links(fixed_output)
+
+    if re.search(r"\[\[insights\/[^\]]+\]\]", fixed_output):
+        return fixed_output
+
+    retry_prompt = (
+        prompt
+        + "\n\n"
+        + "Your previous answer was invalid because it did not include any "
+        + "required [[insights/...]] links.\n"
+        + "Return ONLY clean Markdown.\n"
+        + "You MUST include the required Extraction Block.\n"
+        + "Do not add any prose after <!-- END EXTRACTION -->."
+    )
+
+    raw_output = run_llm(backend, retry_prompt)
+
+    print("\n===== RAW LLM RETRY OUTPUT =====\n")
+    print(raw_output[:4000])
+    print("\n===== END RAW LLM RETRY OUTPUT =====\n")
+
+    fixed_output = normalize_topic_links(raw_output)
+    fixed_output = normalize_insight_links(fixed_output)
+
+    if not re.search(r"\[\[insights\/[^\]]+\]\]", fixed_output):
+        raise ValueError("LLM output invalid: missing insight links after retry")
+
+    return fixed_output
+
+
+# === use for create reports ===
+def run_reports(
+    target_date: str,
+    granularity: str,
+    backend: str,
+    start_date=None,
+    end_date=None,
+):
     """
     Pipeline entrypoint for reports generation.
     """
@@ -247,7 +293,6 @@ def run_reports(target_date: str, granularity: str, backend: str,start_date=None
             llm_callable=lambda prompt, provider, model: run_llm(backend, prompt),
         )
         print(f"report done: {result.output_path}")
-
 
 
 def build_parser():
@@ -276,7 +321,6 @@ def build_parser():
     parser.add_argument("--merge-dry-run", action="store_true")
     parser.add_argument("--merge-threshold", type=float, default=0.88)
 
-
     parser.add_argument("--ranking", action="store_true")
 
     parser.add_argument("--cluster-topics", action="store_true")
@@ -289,7 +333,7 @@ def build_parser():
 
     parser.add_argument(
         "--reports-granularity",
-        choices=["day", "week", "month", "all","custom"],
+        choices=["day", "week", "month", "all", "custom"],
         default="all",
     )
     parser.add_argument("--reports-start-date")
@@ -307,14 +351,11 @@ def main(argv=None):
     load_env()
 
     target_date = args.target_date
-    INBOX_DIR.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-    INSIGHTS_DIR.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+
+    INBOX_DIR.mkdir(parents=True, exist_ok=True)
+    INSIGHTS_DIR.mkdir(parents=True, exist_ok=True)
+    DAILY_DIR.mkdir(parents=True, exist_ok=True)
+
     print(f"Time to get some fresh info in ({target_date})...")
 
     if args.fetch:
@@ -338,13 +379,10 @@ def main(argv=None):
 
         print(f"Running LLM ({args.execution_analysis_backend})...")
 
-        raw_output = run_llm(
+        fixed_output = run_llm_and_validate(
             args.execution_analysis_backend,
             prompt,
         )
-
-        fixed_output = normalize_topic_links(raw_output)
-        fixed_output = normalize_insight_links(fixed_output)
 
         daily_file.write_text(
             fixed_output,
@@ -363,24 +401,28 @@ def main(argv=None):
     if args.merge_dry_run:
         print("Auto-merging insights preview...")
 
-        merge_cmd = [sys.executable,
-                     "-m",
-                     "src.auto_merge_insights",
-                     "--threshold",
-                     str(args.merge_threshold),
-                     "--dry-run"]
+        merge_cmd = [
+            sys.executable,
+            "-m",
+            "src.auto_merge_insights",
+            "--threshold",
+            str(args.merge_threshold),
+            "--dry-run",
+        ]
 
         run_cmd(merge_cmd)
 
     if args.merge_apply:
         print("Auto-merging insights...")
 
-        merge_cmd = [sys.executable,
-                     "-m",
-                     "src.auto_merge_insights",
-                     "--threshold",
-                     str(args.merge_threshold),
-                     "--apply"]
+        merge_cmd = [
+            sys.executable,
+            "-m",
+            "src.auto_merge_insights",
+            "--threshold",
+            str(args.merge_threshold),
+            "--apply",
+        ]
 
         run_cmd(merge_cmd)
 
@@ -422,7 +464,6 @@ def main(argv=None):
             start_date=args.reports_start_date,
             end_date=args.reports_end_date,
         )
-
 
 
 if __name__ == "__main__":

@@ -27,56 +27,67 @@ def clean_name(name: str) -> str:
 
 def main() -> int:
     args = parse_args()
-
     target_date = args.date
 
     daily_file = DAILY_DIR / f"{target_date}.md"
-
     if not daily_file.exists():
         print("No daily file:", daily_file)
         return 0
 
     content = daily_file.read_text(encoding="utf-8")
 
-    insight_pattern = r"\[\[insights\/([^\]]+)\]\]"
-    insights = sorted(set(re.findall(insight_pattern, content)))
+    block_match = re.search(
+        r"## Extraction Block(.*?)<!-- END EXTRACTION -->",
+        content,
+        flags=re.S,
+    )
 
-    topic_pattern = r"\[\[topics\/([^\]]+)\]\]"
-    topics = sorted(set(re.findall(topic_pattern, content)))
+    if block_match:
+        parse_text = block_match.group(1)
+    else:
+        parse_text = content
+        print(f"[WARN] Extraction block not found in {daily_file}; falling back to full content.")
+
+    raw_insights = sorted(set(re.findall(INSIGHT_PATTERN, parse_text)))
+    raw_topics = sorted(set(re.findall(TOPIC_PATTERN, parse_text)))
+
+    insights = [clean_name(i) for i in raw_insights]
+    topics = [clean_name(t) for t in raw_topics]
+
+    # 去掉空字串，保留順序後再去重
+    insights = list(dict.fromkeys(i for i in insights if i))
+    topics = list(dict.fromkeys(t for t in topics if t))
 
     print("Aggregated insights:", insights)
 
-    for insight in insights:
-        insight = clean_name(insight)
+    if not insights:
+        print(f"[WARN] No insights found for {target_date}")
+        return 0
 
+    backlink_line = f"- Derived from [[daily/{target_date}]]"
+    topic_lines = [f"- Related topic: [[topics/{t}]]" for t in topics]
+
+    for insight in insights:
         insight_file = INSIGHTS_DIR / f"{insight}.md"
 
         if not insight_file.exists():
-            insight_file.write_text(
-                f"# {insight}\n",
-                encoding="utf-8",
-            )
+            insight_file.write_text(f"# {insight}\n", encoding="utf-8")
 
         existing = insight_file.read_text(encoding="utf-8")
 
-        backlink_line = f"- Derived from [[daily/{target_date}]]"
+        section_header = f"## {target_date}"
 
-        topic_lines = [
-            f"- Related topic: [[topics/{t}]]"
-            for t in topics
-        ]
+        # 如果這個日期已經寫過，就不要重複 append
+        if section_header in existing:
+            continue
 
-        # the error line will just append. This need to be rebuild
-        if backlink_line not in existing:
-            with open(insight_file, "a", encoding="utf-8") as f:
-                f.write(f"\n## {target_date}\n")
-                f.write(backlink_line + "\n")
-
-                for line in topic_lines:
-                    f.write(line + "\n")
+        with open(insight_file, "a", encoding="utf-8") as f:
+            f.write(f"\n{section_header}\n")
+            f.write(backlink_line + "\n")
+            for line in topic_lines:
+                f.write(line + "\n")
 
     print("Aggregated insights:", insights)
-
     return 0
 
 
