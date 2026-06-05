@@ -1,28 +1,63 @@
+from __future__ import annotations
+
 import argparse
+import re
+
 from src.config import *
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Aggregate daily insights."
-    )
-
+    parser = argparse.ArgumentParser(description="Aggregate daily insights.")
     parser.add_argument(
         "--date",
         default=TODAY,
         help="Target date in YYYY-MM-DD format.",
     )
-
     return parser.parse_args()
 
 
 def clean_name(name: str) -> str:
     name = name.strip().lower()
-
     name = re.sub(r"[^a-z0-9\-]+", "-", name)
     name = re.sub(r"-{2,}", "-", name)
-
     return name.strip("-")
+
+
+def extract_block(content: str) -> str:
+    match = EXTRACTION_BLOCK_RE.search(content)
+    if match:
+        return match.group(1)
+
+    print("[WARN] Extraction block not found; falling back to full content.")
+    return content
+
+
+def build_section(target_date: str, topics: list[str]) -> str:
+    lines = [
+        f"## {target_date}",
+        f"- Derived from [[daily/{target_date}]]",
+    ]
+    for topic in topics:
+        lines.append(f"- Related topic: [[topics/{topic}]]")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def upsert_section(existing: str, target_date: str, section_text: str) -> str:
+    section_header = f"## {target_date}"
+
+    pattern = re.compile(
+        rf"(^|\n){re.escape(section_header)}.*?(?=\n## |\Z)",
+        flags=re.S,
+    )
+
+    if pattern.search(existing):
+        updated = pattern.sub("\n" + section_text.rstrip() + "\n", existing, count=1)
+        return updated.rstrip() + "\n"
+
+    if not existing.endswith("\n"):
+        existing += "\n"
+    return existing.rstrip() + "\n\n" + section_text.rstrip() + "\n"
 
 
 def main() -> int:
@@ -35,28 +70,25 @@ def main() -> int:
         return 0
 
     content = daily_file.read_text(encoding="utf-8")
+    parse_text = extract_block(content)
 
-    block_match = re.search(
-        r"## Extraction Block(.*?)<!-- END EXTRACTION -->",
-        content,
-        flags=re.S,
+    raw_insights = sorted(set(INSIGHT_LINK_RE.findall(parse_text)))
+    raw_topics = sorted(set(TOPIC_LINK_RE.findall(parse_text)))
+
+    insights = list(
+        dict.fromkeys(
+            clean_name(i)
+            for i in raw_insights
+            if clean_name(i)
+        )
     )
-
-    if block_match:
-        parse_text = block_match.group(1)
-    else:
-        parse_text = content
-        print(f"[WARN] Extraction block not found in {daily_file}; falling back to full content.")
-
-    raw_insights = sorted(set(re.findall(INSIGHT_PATTERN, parse_text)))
-    raw_topics = sorted(set(re.findall(TOPIC_PATTERN, parse_text)))
-
-    insights = [clean_name(i) for i in raw_insights]
-    topics = [clean_name(t) for t in raw_topics]
-
-    # 去掉空字串，保留順序後再去重
-    insights = list(dict.fromkeys(i for i in insights if i))
-    topics = list(dict.fromkeys(t for t in topics if t))
+    topics = list(
+        dict.fromkeys(
+            clean_name(t)
+            for t in raw_topics
+            if clean_name(t)
+        )
+    )
 
     print("Aggregated insights:", insights)
 
@@ -64,28 +96,18 @@ def main() -> int:
         print(f"[WARN] No insights found for {target_date}")
         return 0
 
-    backlink_line = f"- Derived from [[daily/{target_date}]]"
-    topic_lines = [f"- Related topic: [[topics/{t}]]" for t in topics]
+    section_text = build_section(target_date, topics)
 
     for insight in insights:
         insight_file = INSIGHTS_DIR / f"{insight}.md"
 
-        if not insight_file.exists():
-            insight_file.write_text(f"# {insight}\n", encoding="utf-8")
+        if insight_file.exists():
+            existing = insight_file.read_text(encoding="utf-8")
+        else:
+            existing = f"# {insight}\n"
 
-        existing = insight_file.read_text(encoding="utf-8")
-
-        section_header = f"## {target_date}"
-
-        # 如果這個日期已經寫過，就不要重複 append
-        if section_header in existing:
-            continue
-
-        with open(insight_file, "a", encoding="utf-8") as f:
-            f.write(f"\n{section_header}\n")
-            f.write(backlink_line + "\n")
-            for line in topic_lines:
-                f.write(line + "\n")
+        updated = upsert_section(existing, target_date, section_text)
+        insight_file.write_text(updated, encoding="utf-8")
 
     print("Aggregated insights:", insights)
     return 0

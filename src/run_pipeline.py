@@ -21,6 +21,8 @@ from src.topic_clustering import (
 )
 from src.topic_memory import build_index as build_topic_index, resolve_or_create_topic
 from src.config import *
+
+
 # === load .env ===
 def load_env() -> None:
     env_path = ENV_FILE
@@ -32,17 +34,70 @@ def load_env() -> None:
                     os.environ[k] = v
 
 
+# === text cleanup ===
+def clean_input(text: str) -> str:
+    text = ANSI_ESCAPE_RE.sub("", text)
+    text = INVISIBLE_RE.sub("", text)
+    return text
+
+
 # === run shell commands ===
 def run_cmd(cmd):
     print(f"> {cmd}")
     subprocess.run(cmd, check=True)
 
 
-def build_prompt_for_inbox(date_str: str) -> str:
-    prompt = (PROMPTS_DIR / "summarized.md").read_text(encoding="utf-8")
-    extraction_contract = (PROMPTS_DIR / "extraction_contract.md").read_text(encoding="utf-8")
-    data = (INBOX_DIR / f"{date_str}.md").read_text(encoding="utf-8")
+def _read_first_existing(*paths: Path) -> str:
+    for path in paths:
+        if path.exists():
+            return path.read_text(encoding="utf-8")
+    raise FileNotFoundError(
+        f"None of the prompt files exist: {', '.join(str(p) for p in paths)}"
+    )
 
+def limit_inbox_items(text: str, max_items: int = 12) -> str:
+    """
+    Keep headings and only the first N bullet news items.
+    This reduces prompt size while preserving structure.
+    """
+    lines = text.splitlines()
+    kept_lines: list[str] = []
+    item_count = 0
+
+    for line in lines:
+        stripped = line.strip()
+
+        # keep headers
+        if stripped.startswith("#") or stripped.startswith("##"):
+            kept_lines.append(line)
+            continue
+
+        # keep only news bullets
+        if re.match(r"^\s*-\s+\[", line):
+            if item_count < max_items:
+                kept_lines.append(line)
+                item_count += 1
+            continue
+
+        # keep blank lines between sections
+        if stripped == "":
+            kept_lines.append(line)
+
+    return "\n".join(kept_lines).strip()
+
+def build_prompt_for_inbox(date_str: str, max_items=10) -> str:
+    prompt = clean_input((PROMPTS_DIR / "summarized.md").read_text(encoding="utf-8"))
+    extraction_contract = clean_input(
+        _read_first_existing(
+            PROMPTS_DIR / "EXTRACTION_CONTRACT.md",
+            PROMPTS_DIR / "extraction_contract.md",
+        )
+    )
+    data = clean_input((INBOX_DIR / f"{date_str}.md").read_text(encoding="utf-8"))
+
+    data = limit_inbox_items(data, max_items=max_items)
+
+    # Put the contract at the end so the model sees the rule right before generation.
     return (
         f"{prompt}\n\n"
         f"--- DATA ---\n"
@@ -102,6 +157,11 @@ def run_llm(backend: str, prompt: str) -> str:
     model = os.environ.get("OLLAMA_MODEL", "gemma3:12b")
     url = "http://localhost:11434/api/generate"
 
+    print("=" * 80)
+    print("MODEL =", model)
+    print("PROMPT LEN =", len(prompt))
+    print("=" * 80)
+
     payload = {
         "model": model,
         "prompt": prompt,
@@ -134,6 +194,7 @@ def normalize_insight_links(text: str, threshold: float = 0.82) -> str:
     - If similar, reuse the old insight
     - If not similar, retain or create a new slug
     """
+
     def shorten_candidate(text: str) -> str:
         words = text.split()[:4]
         return " ".join(words)
@@ -146,36 +207,24 @@ def normalize_insight_links(text: str, threshold: float = 0.82) -> str:
         words = [w for w in words if w not in stopwords]
         name = "-".join(words)
 
-        # Remove k-insights patterns more aggressively
         name = re.sub(r".*insights?-", "", name)
         name = re.sub(r".*topics?-", "", name)
-
-        # Unify underscores
         name = name.replace("_", "-")
-
-        # Clear common noise
         name = re.sub(r"-?\d{1,3}d?-?k?-?insights?-?", "-", name)
         name = re.sub(r"-?\d{4}-?", "-", name)
-
-        # Clear duplicate words
         name = re.sub(r"(ai-search-)+", "ai-search-", name)
         name = re.sub(r"(smartwatch-)+", "smartwatch-", name)
-
-        # Convert to slug
         name = re.sub(r"[^a-z0-9]+", "-", name)
         name = re.sub(r"-{2,}", "-", name).strip("-")
-
         return name
 
     def repl(match: re.Match[str]) -> str:
-        raw = match.group(0)
-        raw_slug = raw.replace("[[insights/", "").replace("]]", "").strip()
+        raw_slug = match.group(1).strip()
         candidate = normalize_name(raw_slug)
         candidate = candidate.replace("-", " ")
         candidate = shorten_candidate(candidate)
 
         result = match_insight(candidate, threshold=threshold)
-
         if result.get("matched"):
             slug = result["slug"]
         else:
@@ -197,16 +246,12 @@ def normalize_topic_name(name: str) -> str:
 
     name = re.sub(r".*insights?-", "", name)
     name = re.sub(r".*topics?-", "", name)
-
     name = re.sub(r"-?\d{1,3}d?-?k?-?topics?-?", "-", name)
     name = re.sub(r"-?\d{1,3}d?-?k?-?topic?-?", "-", name)
     name = re.sub(r"-?\d{4}-?", "-", name)
-
     name = re.sub(r"\b(topics?|topic|insights?|insight)\b", "", name)
-
     name = re.sub(r"[^a-z0-9]+", "-", name)
     name = re.sub(r"-{2,}", "-", name).strip("-")
-
     return name
 
 
@@ -217,8 +262,7 @@ def shorten_topic_candidate(text: str) -> str:
 
 def normalize_topic_links(text: str, threshold: float = 0.78) -> str:
     def repl(match: re.Match[str]) -> str:
-        raw = match.group(0)
-        raw_slug = raw.replace("[[topics/", "").replace("]]", "").strip()
+        raw_slug = match.group(1).strip()
         candidate = raw_slug.replace("-", " ").replace("_", " ")
         candidate = normalize_topic_name(candidate)
         candidate = shorten_topic_candidate(candidate)
@@ -239,7 +283,7 @@ def run_llm_and_validate(backend: str, prompt: str) -> str:
     fixed_output = normalize_topic_links(raw_output)
     fixed_output = normalize_insight_links(fixed_output)
 
-    if re.search(r"\[\[insights\/[^\]]+\]\]", fixed_output):
+    if re.search(r'\[\[insights\/[^\]]+\]\]', fixed_output):
         return fixed_output
 
     retry_prompt = (
@@ -261,7 +305,7 @@ def run_llm_and_validate(backend: str, prompt: str) -> str:
     fixed_output = normalize_topic_links(raw_output)
     fixed_output = normalize_insight_links(fixed_output)
 
-    if not re.search(r"\[\[insights\/[^\]]+\]\]", fixed_output):
+    if not re.search(r'\[\[insights\/[^\]]+\]\]', fixed_output):
         raise ValueError("LLM output invalid: missing insight links after retry")
 
     return fixed_output
@@ -375,7 +419,7 @@ def main(argv=None):
                 f"Run with --fetch first."
             )
 
-        prompt = build_prompt_for_inbox(target_date)
+        prompt = build_prompt_for_inbox(target_date, max_items=10)
 
         print(f"Running LLM ({args.execution_analysis_backend})...")
 

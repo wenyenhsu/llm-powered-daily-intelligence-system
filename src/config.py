@@ -55,10 +55,18 @@ BAD_NODES = {
     "openai-new-model-may-2026",
 }
 
-#merge&clean
+# =========================================================
+# Link patterns
+# =========================================================
+
 WIKI_LINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
 INSIGHT_LINK_RE = re.compile(r"\[\[insights/([^\]|]+)(?:\|[^\]]+)?\]\]")
 TOPIC_LINK_RE = re.compile(r"\[\[topics/([^\]|]+)(?:\|[^\]]+)?\]\]")
+
+# =========================================================
+# Text cleanup
+# =========================================================
+
 EMPTY_BULLET_RE = re.compile(r"^\s*[-*]\s*$", re.MULTILINE)
 MULTI_BLANK_RE = re.compile(r"\n{3,}")
 HEADING_RE = re.compile(r"^# .*$", re.MULTILINE)
@@ -68,17 +76,19 @@ DERIVED_FROM_RE = re.compile(r"Derived from\s+daily/(\d{4}-\d{2}-\d{2})", re.IGN
 ANSI_ESCAPE_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 INVISIBLE_RE = re.compile(r"[\u200b\u200c\u200d\u2060\ufeff\u00ad]")
 BULLET_RE = re.compile(r"^(\s*[-*+]\s+)(.*)$")
+
+# =========================================================
+# Extraction block
+# =========================================================
+
 EXTRACTION_BLOCK_RE = re.compile(
     r"## Extraction Block(.*?)<!-- END EXTRACTION -->",
     flags=re.S,
 )
-# aggragate_insights
-INSIGHT_PATTERN = r"\[\[insights\/([^\]|]+)"
-TOPIC_PATTERN = r"\[\[topics\/([^\]|]+)"
 
-
-
-
+# =========================================================
+# Required report sections
+# =========================================================
 
 REQUIRED_SECTIONS = [
     "## Executive Summary",
@@ -87,4 +97,3 @@ REQUIRED_SECTIONS = [
     "## Risks and Watchlist",
     "## Supporting Insights",
 ]
-
