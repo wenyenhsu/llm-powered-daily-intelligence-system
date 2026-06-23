@@ -116,6 +116,11 @@ OLLAMA_HOST=http://localhost:11434
 # Embedding model
 OLLAMA_EMBED_MODEL=nomic-embed-text
 
+# Insight retrieval (injected into LLM analysis prompt)
+INSIGHT_RETRIEVAL_TOP_K=10
+INSIGHT_RETRIEVAL_MIN_SCORE=0.5
+INSIGHT_RETRIEVAL_SNIPPET_CHARS=120
+
 ```
 
 ---
@@ -229,10 +234,40 @@ python3 -m src.run_pipeline --init
 
 ## Run LLM Analysis
 
+Before analysis, the pipeline embeds the day's inbox news and retrieves the most similar existing insights from `state/insight_index.json`. The top matches are injected into the prompt so the LLM can reuse existing knowledge nodes when analyzing news.
+
+Default behavior (insight retrieval enabled):
+
 ```bash
 python3 -m src.run_pipeline \
   --execution-analysis-backend ollama
 ```
+
+Tune retrieval via CLI flags:
+
+```bash
+python3 -m src.run_pipeline \
+  --execution-analysis-backend ollama \
+  --insight-retrieval-top-k 5 \
+  --insight-retrieval-min-score 0.6
+```
+
+Disable insight retrieval (legacy behavior):
+
+```bash
+python3 -m src.run_pipeline \
+  --execution-analysis-backend ollama \
+  --no-insight-retrieval
+```
+
+| Parameter | CLI flag | Env var | Default | Description |
+|---|---|---|---|---|
+| Top-K | `--insight-retrieval-top-k` | `INSIGHT_RETRIEVAL_TOP_K` | `10` | Number of similar insights injected into the prompt |
+| Min score | `--insight-retrieval-min-score` | `INSIGHT_RETRIEVAL_MIN_SCORE` | `0.5` | Minimum cosine similarity required to include an insight |
+| Snippet length | — | `INSIGHT_RETRIEVAL_SNIPPET_CHARS` | `120` | Max characters of insight text shown per retrieved item |
+| Disable | `--no-insight-retrieval` | — | off | Skip retrieval and do not inject existing insights |
+
+Requires a built embedding index (`--reindex`) and a running Ollama embedding service.
 
 ---
 
@@ -618,12 +653,32 @@ existing topic found?
 
 ---
 
+# 🧠 Hybrid Insight Retrieval
+
+During news analysis, relevant existing insights are retrieved and injected into the LLM prompt before generation.
+
+```text
+inbox news
+  ↓
+embed + top-K retrieval (insight_index.json)
+  ↓
+inject matched insights into prompt
+  ↓
+LLM analyzes news
+  ↓
+normalize_insight_links (embedding canonicalization)
+```
+
+---
+
 # 🧠 Core Concepts
 
 ```text
 embedding = semantic similarity engine
 
 index = long-term memory
+
+insight retrieval = inject relevant past insights into analysis prompt
 
 merge = repair duplicated knowledge
 

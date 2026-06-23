@@ -77,6 +77,84 @@ def load_index() -> dict[str, Any]:
     return json.loads(INSIGHT_INDEX_FILE.read_text(encoding="utf-8"))
 
 
+def insight_snippet(text: str, max_chars: int = INSIGHT_RETRIEVAL_SNIPPET_CHARS) -> str:
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        line = re.sub(r"\[\[[^\]]+\]\]", "", line).strip(" -")
+        if not line:
+            continue
+        snippet = re.sub(r"\s+", " ", line)
+        if len(snippet) > max_chars:
+            return snippet[:max_chars].rstrip() + "..."
+        return snippet
+    return ""
+
+
+def retrieve_top_insights(
+    query_text: str,
+    top_k: int = INSIGHT_RETRIEVAL_TOP_K,
+    min_score: float = INSIGHT_RETRIEVAL_MIN_SCORE,
+) -> list[dict[str, Any]]:
+    index = load_index()
+    items = index.get("items") or []
+    if not items:
+        return []
+
+    query = query_text.strip()
+    if not query:
+        return []
+
+    query_emb = embed_text(query[:4000])
+
+    scored: list[dict[str, Any]] = []
+    for item in items:
+        score = cosine_similarity(query_emb, item["embedding"])
+        if score < min_score:
+            continue
+        scored.append(
+            {
+                "slug": item["slug"],
+                "score": score,
+                "path": item.get("path"),
+                "text": item.get("text", ""),
+            }
+        )
+
+    scored.sort(key=lambda row: row["score"], reverse=True)
+    return scored[:top_k]
+
+
+def format_retrieved_insights_section(
+    items: list[dict[str, Any]],
+    snippet_chars: int = INSIGHT_RETRIEVAL_SNIPPET_CHARS,
+) -> str:
+    if not items:
+        return ""
+
+    lines = [
+        "## Existing Insights (reuse when semantically matching)",
+        "",
+        "The following insights already exist in the knowledge base.",
+        "Prefer reusing these links when a news item matches an existing concept.",
+        "Do NOT create near-duplicate insight names if one of these already fits.",
+        "",
+    ]
+
+    for item in items:
+        slug = item["slug"]
+        score = item["score"]
+        snippet = insight_snippet(item.get("text", ""), snippet_chars)
+        if snippet:
+            lines.append(f"- [[insights/{slug}]] (relevance: {score:.2f}) — {snippet}")
+        else:
+            lines.append(f"- [[insights/{slug}]] (relevance: {score:.2f})")
+
+    lines.append("")
+    return "\n".join(lines)
+
+
 def match_insight(candidate_text: str, threshold: float = 0.82) -> dict[str, Any]:
     index = load_index()
     candidate_emb = embed_text(candidate_text)

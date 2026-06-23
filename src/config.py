@@ -35,6 +35,10 @@ TODAY = datetime.now().strftime("%Y-%m-%d")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 
+INSIGHT_RETRIEVAL_TOP_K = int(os.getenv("INSIGHT_RETRIEVAL_TOP_K", "10"))
+INSIGHT_RETRIEVAL_MIN_SCORE = float(os.getenv("INSIGHT_RETRIEVAL_MIN_SCORE", "0.5"))
+INSIGHT_RETRIEVAL_SNIPPET_CHARS = int(os.getenv("INSIGHT_RETRIEVAL_SNIPPET_CHARS", "120"))
+
 # =========================================================
 # Cleanup rules
 # =========================================================
