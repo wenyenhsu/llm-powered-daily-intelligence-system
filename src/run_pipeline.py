@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 import requests
 
@@ -85,7 +86,14 @@ def limit_inbox_items(text: str, max_items: int = 12) -> str:
 
     return "\n".join(kept_lines).strip()
 
-def build_prompt_for_inbox(date_str: str, max_items=10) -> str:
+def build_prompt_for_inbox(
+    date_str: str,
+    max_items: int = 10,
+    insight_top_k: int = INSIGHT_RETRIEVAL_TOP_K,
+    insight_min_score: float = INSIGHT_RETRIEVAL_MIN_SCORE,
+    enable_insight_retrieval: bool = True,
+    precomputed_insights: list[dict[str, Any]] | None = None,
+) -> str:
     prompt = clean_input((PROMPTS_DIR / "summarized.md").read_text(encoding="utf-8"))
     extraction_contract = clean_input(
         _read_first_existing(
@@ -97,9 +105,23 @@ def build_prompt_for_inbox(date_str: str, max_items=10) -> str:
 
     data = limit_inbox_items(data, max_items=max_items)
 
+    insight_section = ""
+    if enable_insight_retrieval:
+        retrieved = precomputed_insights
+        if retrieved is None:
+            retrieved = retrieve_top_insights(
+                data,
+                top_k=insight_top_k,
+                min_score=insight_min_score,
+            )
+        insight_section = format_retrieved_insights_section(retrieved)
+        if insight_section:
+            insight_section = f"{insight_section}\n"
+
     # Put the contract at the end so the model sees the rule right before generation.
     return (
         f"{prompt}\n\n"
+        f"{insight_section}"
         f"--- DATA ---\n"
         f"{data}\n\n"
         f"{extraction_contract}"
@@ -348,6 +370,24 @@ def build_parser():
     )
 
     parser.add_argument(
+        "--insight-retrieval-top-k",
+        type=int,
+        default=INSIGHT_RETRIEVAL_TOP_K,
+        help="Number of similar existing insights to inject into the analysis prompt.",
+    )
+    parser.add_argument(
+        "--insight-retrieval-min-score",
+        type=float,
+        default=INSIGHT_RETRIEVAL_MIN_SCORE,
+        help="Minimum embedding similarity for an insight to be included in the prompt.",
+    )
+    parser.add_argument(
+        "--no-insight-retrieval",
+        action="store_true",
+        help="Disable injecting retrieved insights into the analysis prompt.",
+    )
+
+    parser.add_argument(
         "--date",
         "--execution-analysis-backend-date",
         dest="target_date",
@@ -419,7 +459,31 @@ def main(argv=None):
                 f"Run with --fetch first."
             )
 
-        prompt = build_prompt_for_inbox(target_date, max_items=10)
+        retrieved_insights = None
+        if not args.no_insight_retrieval:
+            inbox_text = clean_input(inbox_file.read_text(encoding="utf-8"))
+            inbox_text = limit_inbox_items(inbox_text, max_items=10)
+            retrieved_insights = retrieve_top_insights(
+                inbox_text,
+                top_k=args.insight_retrieval_top_k,
+                min_score=args.insight_retrieval_min_score,
+            )
+            if retrieved_insights:
+                slugs = ", ".join(item["slug"] for item in retrieved_insights)
+                print(
+                    f"Injected {len(retrieved_insights)} retrieved insight(s) into prompt: {slugs}"
+                )
+            else:
+                print("No similar existing insights found for retrieval.")
+
+        prompt = build_prompt_for_inbox(
+            target_date,
+            max_items=10,
+            insight_top_k=args.insight_retrieval_top_k,
+            insight_min_score=args.insight_retrieval_min_score,
+            enable_insight_retrieval=not args.no_insight_retrieval,
+            precomputed_insights=retrieved_insights,
+        )
 
         print(f"Running LLM ({args.execution_analysis_backend})...")
 
