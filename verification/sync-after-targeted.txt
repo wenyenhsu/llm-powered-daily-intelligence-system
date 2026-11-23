@@ -1,9 +1,0 @@
-Time (America/Los_Angeles): 2026-11-22T19:03:01.873761-08:00
-Working directory: /Users/godhanko/github/llm-powered-daily-intelligence-system
-Command: /Users/godhanko/Documents/ChatGPT/CSCI-566/llm-powered-daily-intelligence-system/.venv/bin/python -m pytest -p no:cacheprovider -q tests/test_insight_retrieval.py
-Extra environment: {}; PYTHONDONTWRITEBYTECODE=1
-
-......................                                                   [100%]
-22 passed in 0.07s
-
-Exit status: 0

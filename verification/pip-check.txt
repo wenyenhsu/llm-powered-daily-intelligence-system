@@ -1,8 +1,0 @@
-Started (America/Los_Angeles): 2026-11-22T18:40:11.209422-08:00
-Working directory: /Users/godhanko/Documents/ChatGPT/CSCI-566/llm-powered-daily-intelligence-system
-Command: .venv/bin/python -m pip check
-
-WARNING: The directory '/Users/godhanko/Library/Caches/pip' or its parent directory is not owned or is not writable by the current user. The cache has been disabled. Check the permissions and owner of that directory. If executing pip with sudo, you should use sudo's -H flag.
-No broken requirements found.
-
-Exit status: 0
