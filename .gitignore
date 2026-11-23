@@ -199,3 +199,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Local verification artifacts and report drafts
+/report-draft.md
+/verification.md
+/sync-verification.md
+/verification/

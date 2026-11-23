@@ -218,6 +218,30 @@ def infer_date_from_text(text: str) -> Optional[dt.date]:
             return None
     return None
 
+
+SECTION_DATE_HEADER_RE = re.compile(r"^## (\d{4}-\d{2}-\d{2})\s*$", re.MULTILINE)
+
+
+def extract_dated_sections(text: str) -> list[tuple[dt.date, str]]:
+    """Split an insight markdown file into one body per `## YYYY-MM-DD` section."""
+    matches = list(SECTION_DATE_HEADER_RE.finditer(text))
+    if not matches:
+        return []
+
+    sections: list[tuple[dt.date, str]] = []
+    for index, match in enumerate(matches):
+        try:
+            section_date = dt.date.fromisoformat(match.group(1))
+        except ValueError:
+            continue
+
+        start = match.end()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        section_body = text[start:end].strip()
+        sections.append((section_date, section_body))
+
+    return sections
+
 def file_mtime_date(path: Path) -> dt.date:
     return dt.datetime.fromtimestamp(path.stat().st_mtime).date()
 
@@ -291,6 +315,27 @@ def load_insights(source_dir: Path, include_mtime: bool = False) -> list[Insight
             text = path.read_text(encoding="utf-8")
             meta, body = parse_frontmatter(text)
 
+            title = str(meta.get("title") or meta.get("name") or path.stem).strip()
+            topic = meta.get("topic") or meta.get("cluster") or meta.get("category")
+            topic = str(topic).strip() if topic is not None else None
+            tags = normalize_tags(meta.get("tags"))
+
+            dated_sections = extract_dated_sections(body)
+            if dated_sections:
+                for section_date, section_body in dated_sections:
+                    items.append(
+                        InsightItem(
+                            title=title,
+                            body=section_body,
+                            source_path=path,
+                            date=section_date,
+                            topic=topic,
+                            tags=tags,
+                            raw=meta,
+                        )
+                    )
+                continue
+
             date = (
                 parse_date_from_any(meta.get("updated_at"))
                 or parse_date_from_any(meta.get("date"))
@@ -305,10 +350,6 @@ def load_insights(source_dir: Path, include_mtime: bool = False) -> list[Insight
             if date is None:
                 continue
 
-            title = str(meta.get("title") or meta.get("name") or path.stem).strip()
-            topic = meta.get("topic") or meta.get("cluster") or meta.get("category")
-            topic = str(topic).strip() if topic is not None else None
-            tags = normalize_tags(meta.get("tags"))
             body = body.strip()
 
             items.append(

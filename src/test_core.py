@@ -108,6 +108,48 @@ Body text here.
         self.assertEqual([item.title for item in filtered], ["A", "B"])
         self.assertEqual(filtered[0].body, "xxxxx...")
 
+    def test_extract_dated_sections_splits_insight_history(self):
+        text = """# ai-industrialization
+
+## 2026-06-27
+- Derived from [[daily/2026-06-27]]
+
+## 2026-06-28
+- Derived from [[daily/2026-06-28]]
+"""
+        sections = gr.extract_dated_sections(text)
+        self.assertEqual(
+            sections,
+            [
+                (dt.date(2026, 6, 27), "- Derived from [[daily/2026-06-27]]"),
+                (dt.date(2026, 6, 28), "- Derived from [[daily/2026-06-28]]"),
+            ],
+        )
+
+    def test_load_insights_uses_each_dated_section(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            insight_path = Path(tmp) / "ai-industrialization.md"
+            insight_path.write_text(
+                """# ai-industrialization
+
+## 2026-06-27
+- Derived from [[daily/2026-06-27]]
+
+## 2026-06-28
+- Derived from [[daily/2026-06-28]]
+""",
+                encoding="utf-8",
+            )
+
+            items = gr.load_insights(Path(tmp))
+            self.assertEqual(len(items), 2)
+            self.assertEqual({item.date for item in items}, {dt.date(2026, 6, 27), dt.date(2026, 6, 28)})
+
+            window = gr.ReportWindow("day", dt.date(2026, 6, 28), dt.date(2026, 6, 28), dt.date(2026, 6, 28))
+            filtered = gr.filter_items(items, window, max_items=10, max_chars_per_item=1800)
+            self.assertEqual(len(filtered), 1)
+            self.assertEqual(filtered[0].date, dt.date(2026, 6, 28))
+
     def test_clean_report_strips_thinking_and_tags(self):
         raw = "\x1b[31m<think>hidden</think>\n[12D][K]  Hello   world\n\n\n"
         cleaned = gr.clean_report(raw)

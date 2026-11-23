@@ -269,6 +269,15 @@ python3 -m src.run_pipeline \
 
 Requires a built embedding index (`--reindex`) and a running Ollama embedding service.
 
+For a non-empty index and query, retrieval requires the index's `model` metadata to
+exactly match the configured `OLLAMA_EMBED_MODEL`. A mismatch raises `ValueError`
+before calling the embedding service, even when the vector dimensions match.
+Legacy indexes with missing, blank, or non-string `model` metadata also raise an
+error because their representation space cannot be verified. Rebuild explicitly
+with `python3 -m src.run_pipeline --reindex` using the intended model configuration,
+then retry retrieval. These errors do not rebuild or modify the index. Empty
+indexes and blank queries continue to return no matches.
+
 ---
 
 ## Aggregate Insights
