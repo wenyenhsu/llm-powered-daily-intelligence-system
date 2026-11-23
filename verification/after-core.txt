@@ -1,0 +1,8 @@
+Started (America/Los_Angeles): 2026-11-22T18:39:24.558219-08:00
+Working directory: /Users/godhanko/Documents/ChatGPT/CSCI-566/llm-powered-daily-intelligence-system
+Command: .venv/bin/python -m pytest -q src/test_core.py
+
+.................                                                        [100%]
+17 passed in 0.06s
+
+Exit status: 0

@@ -106,7 +106,21 @@ def retrieve_top_insights(
     if not query:
         return []
 
-    query_emb = embed_text(query[:4000])
+    query_model = OLLAMA_EMBED_MODEL
+    index_model = index.get("model")
+    if not isinstance(index_model, str) or not index_model.strip():
+        raise ValueError(
+            f"Insight index is missing valid model metadata (got {index_model!r}); "
+            f"query embedding model is {query_model!r}. Rebuild with --reindex before retrieval."
+        )
+    if index_model != query_model:
+        raise ValueError(
+            f"Insight index embedding model {index_model!r} does not match "
+            f"query embedding model {query_model!r}. Rebuild with --reindex before retrieval."
+        )
+
+    # Pass the validated model explicitly: embed_text's default is bound at definition time.
+    query_emb = embed_text(query[:4000], model=query_model)
 
     scored: list[dict[str, Any]] = []
     for item in items:

@@ -1,0 +1,17 @@
+Started (America/Los_Angeles): 2026-11-22T18:36:48.198602-08:00
+Working directory: /Users/godhanko/Documents/ChatGPT/CSCI-566/llm-powered-daily-intelligence-system
+Command: env OLLAMA_EMBED_MODEL=model-B .venv/bin/python verification/reproduce_model_mismatch.py
+
+/Users/godhanko/Documents/ChatGPT/CSCI-566/llm-powered-daily-intelligence-system/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Expected: ValueError naming model-A, model-B and --reindex; zero HTTP calls.
+Indexed vector and mocked query vector both have dimension 2.
+Configured query model: model-B
+Actual exception: None
+Actual results: [{'slug': 'same-dimension', 'score': 1.0, 'path': 'insights/same-dimension.md', 'text': 'A vector from another representation space.'}]
+Embedding HTTP calls: 1
+Embedding HTTP payload: {'model': 'model-B', 'prompt': 'query'}
+Temporary index bytes unchanged: True
+FAIL: incompatible models were not rejected before embedding
+
+Exit status: 1

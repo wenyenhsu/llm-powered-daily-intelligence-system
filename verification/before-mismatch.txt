@@ -1,0 +1,15 @@
+Started (America/Los_Angeles): 2026-11-22T18:38:07.552968-08:00
+Working directory: /Users/godhanko/Documents/ChatGPT/CSCI-566/llm-powered-daily-intelligence-system
+Command: env OLLAMA_EMBED_MODEL=model-B .venv/bin/python verification/reproduce_model_mismatch.py
+
+Expected: ValueError naming model-A, model-B and --reindex; zero HTTP calls.
+Indexed vector and mocked query vector both have dimension 2.
+Configured query model: model-B
+Actual exception: None
+Actual results: [{'slug': 'same-dimension', 'score': 1.0, 'path': 'insights/same-dimension.md', 'text': 'A vector from another representation space.'}]
+Embedding HTTP calls: 1
+Embedding HTTP payload: {'model': 'model-B', 'prompt': 'query'}
+Temporary index bytes unchanged: True
+FAIL: incompatible models were not rejected before embedding
+
+Exit status: 1

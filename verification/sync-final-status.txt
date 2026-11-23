@@ -1,0 +1,19 @@
+Time (America/Los_Angeles): 2026-11-22T19:03:02.700970-08:00
+Working directory: /Users/godhanko/github/llm-powered-daily-intelligence-system
+Command: git status --short --branch
+Extra environment: {}; PYTHONDONTWRITEBYTECODE=1
+
+## codex/validate-embedding-model
+ M README.md
+ M src/embedding_memory.py
+ M src/generate_reports.py
+ M src/test_core.py
+ M state/insight_index.json
+ M state/topic_index.json
+ M tests/test_insight_retrieval.py
+?? report-draft.md
+?? sync-verification.md
+?? verification.md
+?? verification/
+
+Exit status: 0

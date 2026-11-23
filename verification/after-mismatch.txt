@@ -1,0 +1,14 @@
+Started (America/Los_Angeles): 2026-11-22T18:39:41.243658-08:00
+Working directory: /Users/godhanko/Documents/ChatGPT/CSCI-566/llm-powered-daily-intelligence-system
+Command: env OLLAMA_EMBED_MODEL=model-B .venv/bin/python verification/reproduce_model_mismatch.py
+
+Expected: ValueError naming model-A, model-B and --reindex; zero HTTP calls.
+Indexed vector and mocked query vector both have dimension 2.
+Configured query model: model-B
+Actual exception: "Insight index embedding model 'model-A' does not match query embedding model 'model-B'. Rebuild with --reindex before retrieval."
+Actual results: None
+Embedding HTTP calls: 0
+Temporary index bytes unchanged: True
+PASS
+
+Exit status: 0

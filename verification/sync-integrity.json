@@ -1,0 +1,28 @@
+{
+  "preserved_sha256_before": {
+    "src/generate_reports.py": "b2a422d966adb11cde447f3406b396503eb9929a36afdb368f5dd965304aab9d",
+    "src/test_core.py": "6329fd6ab8a731cc2e2b2d658be834387c0a81bbef778139c813f4d9263aa1a0",
+    "state/insight_index.json": "6dc4d149434aae9ec25e93a5261b70a8a6aff494fa2f768e0a519abf664abb65",
+    "state/topic_index.json": "3fcd2ccfa251567fa0417dbad3f2e1fab757f708c20669435e61efdc98006248"
+  },
+  "preserved_sha256_after": {
+    "src/generate_reports.py": "b2a422d966adb11cde447f3406b396503eb9929a36afdb368f5dd965304aab9d",
+    "src/test_core.py": "6329fd6ab8a731cc2e2b2d658be834387c0a81bbef778139c813f4d9263aa1a0",
+    "state/insight_index.json": "6dc4d149434aae9ec25e93a5261b70a8a6aff494fa2f768e0a519abf664abb65",
+    "state/topic_index.json": "3fcd2ccfa251567fa0417dbad3f2e1fab757f708c20669435e61efdc98006248"
+  },
+  "same_five_existing_failures": [
+    "tests/test_commands.py::test_full_pipeline_quick_start",
+    "tests/test_commands.py::test_merge_apply",
+    "tests/test_run_pipeline_args.py::test_combined_args",
+    "tests/test_run_pipeline_args.py::test_default_args",
+    "tests/test_run_pipeline_args.py::test_flag_args[argv5-merge]"
+  ],
+  "head_after": "a01dc65c8a56753fd4f8c11074f964c0bff7c37e",
+  "branch_after": "codex/validate-embedding-model",
+  "updated_files_equal_reviewed_source": [
+    "README.md",
+    "src/embedding_memory.py",
+    "tests/test_insight_retrieval.py"
+  ]
+}

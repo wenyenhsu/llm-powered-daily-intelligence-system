@@ -1,0 +1,27 @@
+Started (America/Los_Angeles): 2026-11-22T18:36:25.667039-08:00
+Working directory: /Users/godhanko/Documents/ChatGPT/CSCI-566/llm-powered-daily-intelligence-system
+Command: python3 verification/collect_github.py
+
+{
+  "checked_at_los_angeles": "2026-11-22T18:36:28.094039-08:00",
+  "repository": "wenyenhsu/llm-powered-daily-intelligence-system",
+  "issue_counts": {
+    "open": 0,
+    "closed": 0
+  },
+  "pull_counts": {
+    "open": 0,
+    "closed": 1
+  },
+  "title_body_search_pattern": "embed|model|metadata|retriev|reindex|compatib",
+  "matching_items": [
+    {
+      "number": 1,
+      "title": "Add top-K insight retrieval into LLM news analysis prompt.",
+      "url": "https://github.com/wenyenhsu/llm-powered-daily-intelligence-system/pull/1"
+    }
+  ]
+}
+All issue/PR pagination followed. Full API responses: verification/github-search.json
+
+Exit status: 0

@@ -1,0 +1,161 @@
+Started (America/Los_Angeles): 2026-11-22T18:39:24.180273-08:00
+Working directory: /Users/godhanko/Documents/ChatGPT/CSCI-566/llm-powered-daily-intelligence-system
+Command: .venv/bin/python -m pytest -q --tb=short
+
+..F.......F..........................F.....F.............F....           [100%]
+=================================== FAILURES ===================================
+________________________ test_full_pipeline_quick_start ________________________
+tests/test_commands.py:12: in test_full_pipeline_quick_start
+    args = parse_args([
+src/run_pipeline.py:430: in parse_args
+    return build_parser().parse_args(argv)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:1874: in parse_args
+    args, argv = self.parse_known_args(args, namespace)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:1907: in parse_known_args
+    namespace, args = self._parse_known_args(args, namespace)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:1950: in _parse_known_args
+    option_tuple = self._parse_optional(arg_string)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:2277: in _parse_optional
+    self.error(msg % args)
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:2640: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:2627: in exit
+    _sys.exit(status)
+E   SystemExit: 2
+----------------------------- Captured stderr call -----------------------------
+usage: __main__.py [-h] [--execution-analysis-backend {ollama}]
+                   [--insight-retrieval-top-k INSIGHT_RETRIEVAL_TOP_K]
+                   [--insight-retrieval-min-score INSIGHT_RETRIEVAL_MIN_SCORE]
+                   [--no-insight-retrieval] [--date TARGET_DATE] [--fetch]
+                   [--init] [--agg] [--clean] [--reindex] [--merge-apply]
+                   [--merge-dry-run] [--merge-threshold MERGE_THRESHOLD]
+                   [--ranking] [--cluster-topics] [--threshold THRESHOLD]
+                   [--reports-backend {ollama}]
+                   [--reports-granularity {day,week,month,all,custom}]
+                   [--reports-start-date REPORTS_START_DATE]
+                   [--reports-end-date REPORTS_END_DATE]
+__main__.py: error: ambiguous option: --merge could match --merge-apply, --merge-dry-run, --merge-threshold
+_______________________________ test_merge_apply _______________________________
+tests/test_commands.py:108: in test_merge_apply
+    args = parse_args([
+src/run_pipeline.py:430: in parse_args
+    return build_parser().parse_args(argv)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:1874: in parse_args
+    args, argv = self.parse_known_args(args, namespace)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:1907: in parse_known_args
+    namespace, args = self._parse_known_args(args, namespace)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:1950: in _parse_known_args
+    option_tuple = self._parse_optional(arg_string)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:2277: in _parse_optional
+    self.error(msg % args)
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:2640: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:2627: in exit
+    _sys.exit(status)
+E   SystemExit: 2
+----------------------------- Captured stderr call -----------------------------
+usage: __main__.py [-h] [--execution-analysis-backend {ollama}]
+                   [--insight-retrieval-top-k INSIGHT_RETRIEVAL_TOP_K]
+                   [--insight-retrieval-min-score INSIGHT_RETRIEVAL_MIN_SCORE]
+                   [--no-insight-retrieval] [--date TARGET_DATE] [--fetch]
+                   [--init] [--agg] [--clean] [--reindex] [--merge-apply]
+                   [--merge-dry-run] [--merge-threshold MERGE_THRESHOLD]
+                   [--ranking] [--cluster-topics] [--threshold THRESHOLD]
+                   [--reports-backend {ollama}]
+                   [--reports-granularity {day,week,month,all,custom}]
+                   [--reports-start-date REPORTS_START_DATE]
+                   [--reports-end-date REPORTS_END_DATE]
+__main__.py: error: ambiguous option: --merge could match --merge-apply, --merge-dry-run, --merge-threshold
+______________________________ test_default_args _______________________________
+tests/test_run_pipeline_args.py:19: in test_default_args
+    assert args.merge is False
+           ^^^^^^^^^^
+E   AttributeError: 'Namespace' object has no attribute 'merge'
+_________________________ test_flag_args[argv5-merge] __________________________
+tests/test_run_pipeline_args.py:43: in test_flag_args
+    args = parse_args(argv)
+           ^^^^^^^^^^^^^^^^
+src/run_pipeline.py:430: in parse_args
+    return build_parser().parse_args(argv)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:1874: in parse_args
+    args, argv = self.parse_known_args(args, namespace)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:1907: in parse_known_args
+    namespace, args = self._parse_known_args(args, namespace)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:1950: in _parse_known_args
+    option_tuple = self._parse_optional(arg_string)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:2277: in _parse_optional
+    self.error(msg % args)
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:2640: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:2627: in exit
+    _sys.exit(status)
+E   SystemExit: 2
+----------------------------- Captured stderr call -----------------------------
+usage: __main__.py [-h] [--execution-analysis-backend {ollama}]
+                   [--insight-retrieval-top-k INSIGHT_RETRIEVAL_TOP_K]
+                   [--insight-retrieval-min-score INSIGHT_RETRIEVAL_MIN_SCORE]
+                   [--no-insight-retrieval] [--date TARGET_DATE] [--fetch]
+                   [--init] [--agg] [--clean] [--reindex] [--merge-apply]
+                   [--merge-dry-run] [--merge-threshold MERGE_THRESHOLD]
+                   [--ranking] [--cluster-topics] [--threshold THRESHOLD]
+                   [--reports-backend {ollama}]
+                   [--reports-granularity {day,week,month,all,custom}]
+                   [--reports-start-date REPORTS_START_DATE]
+                   [--reports-end-date REPORTS_END_DATE]
+__main__.py: error: ambiguous option: --merge could match --merge-apply, --merge-dry-run, --merge-threshold
+______________________________ test_combined_args ______________________________
+tests/test_run_pipeline_args.py:67: in test_combined_args
+    args = parse_args([
+src/run_pipeline.py:430: in parse_args
+    return build_parser().parse_args(argv)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:1874: in parse_args
+    args, argv = self.parse_known_args(args, namespace)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:1907: in parse_known_args
+    namespace, args = self._parse_known_args(args, namespace)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:1950: in _parse_known_args
+    option_tuple = self._parse_optional(arg_string)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:2277: in _parse_optional
+    self.error(msg % args)
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:2640: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/argparse.py:2627: in exit
+    _sys.exit(status)
+E   SystemExit: 2
+----------------------------- Captured stderr call -----------------------------
+usage: __main__.py [-h] [--execution-analysis-backend {ollama}]
+                   [--insight-retrieval-top-k INSIGHT_RETRIEVAL_TOP_K]
+                   [--insight-retrieval-min-score INSIGHT_RETRIEVAL_MIN_SCORE]
+                   [--no-insight-retrieval] [--date TARGET_DATE] [--fetch]
+                   [--init] [--agg] [--clean] [--reindex] [--merge-apply]
+                   [--merge-dry-run] [--merge-threshold MERGE_THRESHOLD]
+                   [--ranking] [--cluster-topics] [--threshold THRESHOLD]
+                   [--reports-backend {ollama}]
+                   [--reports-granularity {day,week,month,all,custom}]
+                   [--reports-start-date REPORTS_START_DATE]
+                   [--reports-end-date REPORTS_END_DATE]
+__main__.py: error: ambiguous option: --merge could match --merge-apply, --merge-dry-run, --merge-threshold
+=========================== short test summary info ============================
+FAILED tests/test_commands.py::test_full_pipeline_quick_start - SystemExit: 2
+FAILED tests/test_commands.py::test_merge_apply - SystemExit: 2
+FAILED tests/test_run_pipeline_args.py::test_default_args - AttributeError: '...
+FAILED tests/test_run_pipeline_args.py::test_flag_args[argv5-merge] - SystemE...
+FAILED tests/test_run_pipeline_args.py::test_combined_args - SystemExit: 2
+5 failed, 57 passed in 0.24s
+
+Exit status: 1
